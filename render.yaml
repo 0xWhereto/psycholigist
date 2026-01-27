@@ -1,0 +1,29 @@
+services:
+  - type: worker
+    name: psychobot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./autopsych.db
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: MAX_CONVERSATION_HISTORY
+        value: "20"
+      - key: FREE_TIER_DAILY_MESSAGES
+        value: "3"
+      - key: GRACE_PERIOD_DAYS
+        value: "3"
+      - key: WALLET_ADDRESS
+        sync: false
+      - key: WALLET_CURRENCY
+        value: USDT
+      - key: ADMIN_USER_ID
+        sync: false
