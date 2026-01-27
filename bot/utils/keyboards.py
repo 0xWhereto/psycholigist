@@ -51,13 +51,13 @@ def get_subscription_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(buttons)
 
 
-def get_payment_method_keyboard(plan_type: str, lang: str = "ru", stars_price: int = 0) -> InlineKeyboardMarkup:
+def get_payment_method_keyboard(plan_type: str, lang: str = "ru", price_usd: float = 0) -> InlineKeyboardMarkup:
     """Возвращает клавиатуру выбора способа оплаты."""
     if lang == "ru":
         buttons = [
             [InlineKeyboardButton(
-                f"⭐ Telegram Stars ({stars_price} ⭐)",
-                callback_data=f"paymethod:stars:{plan_type}"
+                f"💳 Карта (${price_usd:.0f})",
+                callback_data=f"paymethod:card:{plan_type}"
             )],
             [InlineKeyboardButton(
                 "🪙 Криптовалюта (USDT/TON)",
@@ -68,8 +68,8 @@ def get_payment_method_keyboard(plan_type: str, lang: str = "ru", stars_price: i
     elif lang == "en":
         buttons = [
             [InlineKeyboardButton(
-                f"⭐ Telegram Stars ({stars_price} ⭐)",
-                callback_data=f"paymethod:stars:{plan_type}"
+                f"💳 Card (${price_usd:.0f})",
+                callback_data=f"paymethod:card:{plan_type}"
             )],
             [InlineKeyboardButton(
                 "🪙 Cryptocurrency (USDT/TON)",
@@ -80,8 +80,8 @@ def get_payment_method_keyboard(plan_type: str, lang: str = "ru", stars_price: i
     else:  # fr
         buttons = [
             [InlineKeyboardButton(
-                f"⭐ Telegram Stars ({stars_price} ⭐)",
-                callback_data=f"paymethod:stars:{plan_type}"
+                f"💳 Carte (${price_usd:.0f})",
+                callback_data=f"paymethod:card:{plan_type}"
             )],
             [InlineKeyboardButton(
                 "🪙 Cryptomonnaie (USDT/TON)",

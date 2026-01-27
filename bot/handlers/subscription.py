@@ -337,24 +337,24 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
         lang = db_user.language_code if db_user else "ru"
     
     # Показываем выбор способа оплаты
-    stars_price = plan.get('price_stars', 1000)
+    price_usd = plan.get('price_usd', 20)
     
     payment_method_texts = {
         "ru": f"""
 💰 **{plan.get('name_ru')}**
-Сумма: **${plan['price_usd']:.0f}** или **{stars_price} ⭐**
+Сумма: **${price_usd:.0f}**
 
 Выберите способ оплаты:
 """,
         "en": f"""
 💰 **{plan.get('name_en')}**
-Amount: **${plan['price_usd']:.0f}** or **{stars_price} ⭐**
+Amount: **${price_usd:.0f}**
 
 Choose payment method:
 """,
         "fr": f"""
 💰 **{plan.get('name_fr')}**
-Montant: **${plan['price_usd']:.0f}** ou **{stars_price} ⭐**
+Montant: **${price_usd:.0f}**
 
 Choisissez le mode de paiement:
 """
@@ -362,7 +362,7 @@ Choisissez le mode de paiement:
     
     await query.edit_message_text(
         payment_method_texts.get(lang, payment_method_texts["ru"]),
-        reply_markup=get_payment_method_keyboard(plan_type, lang, stars_price),
+        reply_markup=get_payment_method_keyboard(plan_type, lang, price_usd),
         parse_mode="Markdown"
     )
 
@@ -389,52 +389,21 @@ async def payment_method_callback(update: Update, context: ContextTypes.DEFAULT_
         db_user = await UserService.get_user(session, user.id)
         lang = db_user.language_code if db_user else "ru"
     
-    if method == "stars":
-        # Оплата через Telegram Stars
-        await handle_stars_payment(query, context, user, plan_type, plan, lang)
-    elif method == "card":
-        # Оплата картой через Telegram Payments
+    if method == "card":
+        # Оплата картой через Crypto Pay (конвертация в крипту)
         await handle_card_payment(query, context, user, plan_type, plan, lang)
     elif method == "crypto":
-        # Оплата криптой
+        # Оплата криптой напрямую
         await handle_crypto_payment(query, context, user, plan_type, plan, lang)
 
 
-async def handle_stars_payment(query, context, user, plan_type: str, plan: dict, lang: str):
-    """Обрабатывает оплату через Telegram Stars."""
-    
-    # Удаляем предыдущее сообщение
-    await query.delete_message()
-    
-    # Создаём invoice для Stars
-    title = plan.get(f"name_{lang}", plan["name_ru"])
-    
-    descriptions = {
-        "ru": f"Полный доступ к боту психологической поддержки на {plan['duration_days']} дней",
-        "en": f"Full access to psychological support bot for {plan['duration_days']} days",
-        "fr": f"Accès complet au bot de soutien psychologique pendant {plan['duration_days']} jours"
-    }
-    
-    stars_price = plan.get("price_stars", 1000)
-    
-    # Для Stars используем currency="XTR" и пустой provider_token
-    await context.bot.send_invoice(
-        chat_id=user.id,
-        title=f"⭐ {title}",
-        description=descriptions.get(lang, descriptions["ru"]),
-        payload=f"stars:{plan_type}:{user.id}",
-        provider_token="",  # Пустой для Stars
-        currency="XTR",  # XTR = Telegram Stars
-        prices=[LabeledPrice(label=title, amount=stars_price)],
-        start_parameter=f"stars_{plan_type}"
-    )
-
-
 async def handle_card_payment(query, context, user, plan_type: str, plan: dict, lang: str):
-    """Обрабатывает оплату банковской картой."""
-    payment_token = os.getenv("PAYMENT_PROVIDER_TOKEN")
+    """Обрабатывает оплату картой через Crypto Pay (конвертация в крипту)."""
+    from bot.services.crypto_pay import get_crypto_pay
     
-    if not payment_token:
+    crypto_pay = get_crypto_pay()
+    
+    if not crypto_pay:
         error_messages = {
             "ru": "❌ Оплата картой временно недоступна. Пожалуйста, используйте криптовалюту.",
             "en": "❌ Card payment is temporarily unavailable. Please use cryptocurrency.",
@@ -443,36 +412,116 @@ async def handle_card_payment(query, context, user, plan_type: str, plan: dict, 
         await query.edit_message_text(error_messages.get(lang, error_messages["ru"]))
         return
     
-    # Удаляем предыдущее сообщение
-    await query.delete_message()
+    db = get_db()
     
-    # Создаём invoice
-    title = plan.get(f"name_{lang}", plan["name_ru"])
-    description = {
-        "ru": f"Полный доступ к боту психологической поддержки на {plan['duration_days']} дней",
-        "en": f"Full access to psychological support bot for {plan['duration_days']} days",
-        "fr": f"Accès complet au bot de soutien psychologique pendant {plan['duration_days']} jours"
-    }
+    async with db.session() as session:
+        # Создаём pending payment
+        payment = await PaymentService.create_pending_payment(
+            session,
+            user_id=user.id,
+            plan_type=plan_type
+        )
     
-    # Цена в копейках/центах (минимальная единица валюты)
-    # Telegram Payments требует цену в минимальных единицах
-    price_cents = int(plan["price_usd"] * 100)
-    
-    await context.bot.send_invoice(
-        chat_id=user.id,
-        title=title,
-        description=description.get(lang, description["ru"]),
-        payload=f"subscription:{plan_type}:{user.id}",
-        provider_token=payment_token,
-        currency="USD",
-        prices=[LabeledPrice(label=title, amount=price_cents)],
-        start_parameter=f"subscribe_{plan_type}",
-        need_name=False,
-        need_phone_number=False,
-        need_email=False,
-        need_shipping_address=False,
-        is_flexible=False
-    )
+    try:
+        # Создаём инвойс в Crypto Pay
+        title = plan.get(f"name_{lang}", plan["name_ru"])
+        
+        invoice = await crypto_pay.create_invoice(
+            amount=plan["price_usd"],
+            currency="USDT",
+            description=f"{title} - Психолог-бот",
+            payload=f"card:{plan_type}:{user.id}:{payment.id}",
+            expires_in=3600  # 1 час
+        )
+        
+        pay_url = invoice.get("pay_url")
+        invoice_id = invoice.get("invoice_id")
+        
+        # Сохраняем invoice_id в payment
+        async with db.session() as session:
+            from sqlalchemy import select
+            from bot.models import Payment
+            result = await session.execute(
+                select(Payment).where(Payment.id == payment.id)
+            )
+            p = result.scalar_one()
+            p.tx_hash = str(invoice_id)
+            p.note = "Crypto Pay invoice"
+        
+        # Удаляем предыдущее сообщение
+        await query.delete_message()
+        
+        # Отправляем ссылку на оплату
+        card_messages = {
+            "ru": f"""
+💳 **Оплата картой**
+
+**План:** {plan['name_ru']}
+**Сумма:** ${plan['price_usd']:.2f}
+
+Нажмите кнопку ниже для оплаты.
+Принимаются Visa, MasterCard и криптовалюта.
+
+После оплаты подписка активируется автоматически!
+""",
+            "en": f"""
+💳 **Card Payment**
+
+**Plan:** {plan['name_en']}
+**Amount:** ${plan['price_usd']:.2f}
+
+Click the button below to pay.
+Visa, MasterCard and cryptocurrency accepted.
+
+Subscription will be activated automatically after payment!
+""",
+            "fr": f"""
+💳 **Paiement par carte**
+
+**Formule:** {plan['name_fr']}
+**Montant:** ${plan['price_usd']:.2f}
+
+Cliquez sur le bouton ci-dessous pour payer.
+Visa, MasterCard et cryptomonnaie acceptés.
+
+L'abonnement sera activé automatiquement après le paiement!
+"""
+        }
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        pay_button_text = {
+            "ru": "💳 Оплатить",
+            "en": "💳 Pay Now",
+            "fr": "💳 Payer"
+        }
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                pay_button_text.get(lang, pay_button_text["ru"]),
+                url=pay_url
+            )],
+            [InlineKeyboardButton(
+                "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
+                callback_data=f"checkpay:{invoice_id}:{payment.id}"
+            )]
+        ])
+        
+        await context.bot.send_message(
+            chat_id=user.id,
+            text=card_messages.get(lang, card_messages["ru"]),
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Crypto Pay error: {e}")
+        error_messages = {
+            "ru": "❌ Ошибка создания платежа. Попробуйте позже или используйте криптовалюту.",
+            "en": "❌ Error creating payment. Please try later or use cryptocurrency.",
+            "fr": "❌ Erreur lors de la création du paiement. Réessayez plus tard ou utilisez la cryptomonnaie."
+        }
+        await query.edit_message_text(error_messages.get(lang, error_messages["ru"]))
 
 
 async def handle_crypto_payment(query, context, user, plan_type: str, plan: dict, lang: str):
@@ -720,6 +769,114 @@ Vous avez maintenant un accès illimité.
         logger.info(f"Card payment successful for user {user.id}, plan {plan_type}")
 
 
+async def check_crypto_pay_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверяет оплату через Crypto Pay."""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    data = query.data
+    
+    if not data.startswith("checkpay:"):
+        return
+    
+    parts = data.split(":")
+    invoice_id = int(parts[1])
+    payment_id = int(parts[2])
+    
+    from bot.services.crypto_pay import get_crypto_pay
+    crypto_pay = get_crypto_pay()
+    
+    if not crypto_pay:
+        await query.edit_message_text("❌ Ошибка проверки платежа")
+        return
+    
+    db = get_db()
+    
+    async with db.session() as session:
+        db_user = await UserService.get_user(session, user.id)
+        lang = db_user.language_code if db_user else "ru"
+    
+    try:
+        # Проверяем статус инвойса
+        is_paid = await crypto_pay.check_invoice_paid(invoice_id)
+        
+        if is_paid:
+            async with db.session() as session:
+                from sqlalchemy import select
+                from bot.models import Payment
+                
+                result = await session.execute(
+                    select(Payment).where(Payment.id == payment_id)
+                )
+                payment = result.scalar_one_or_none()
+                
+                if payment and payment.status != "completed":
+                    payment.status = "completed"
+                    payment.note = "Paid via Crypto Pay (card)"
+                    
+                    # Создаём подписку
+                    subscription = await SubscriptionService.create_subscription(
+                        session,
+                        user_id=user.id,
+                        plan_type=payment.plan_type,
+                        payment_id=str(payment.id)
+                    )
+                    
+                    plan = SUBSCRIPTION_PLANS[payment.plan_type]
+                    
+                    success_messages = {
+                        "ru": f"""
+✅ **Оплата прошла успешно!**
+
+**План:** {plan['name_ru']}
+**Действует до:** {subscription.expires_at.strftime('%d.%m.%Y')}
+
+Спасибо за покупку! 💙
+Теперь у вас неограниченный доступ.
+""",
+                        "en": f"""
+✅ **Payment successful!**
+
+**Plan:** {plan['name_en']}
+**Valid until:** {subscription.expires_at.strftime('%d.%m.%Y')}
+
+Thank you for your purchase! 💙
+You now have unlimited access.
+""",
+                        "fr": f"""
+✅ **Paiement réussi!**
+
+**Formule:** {plan['name_fr']}
+**Valable jusqu'au:** {subscription.expires_at.strftime('%d.%m.%Y')}
+
+Merci pour votre achat! 💙
+Vous avez maintenant un accès illimité.
+"""
+                    }
+                    
+                    await query.edit_message_text(
+                        success_messages.get(lang, success_messages["ru"]),
+                        parse_mode="Markdown"
+                    )
+                else:
+                    await query.edit_message_text(
+                        "✅ Подписка уже активирована!" if lang == "ru" else "✅ Subscription already activated!"
+                    )
+        else:
+            # Не оплачено ещё
+            pending_messages = {
+                "ru": "⏳ Платёж ещё не получен. Если вы уже оплатили, подождите 1-2 минуты и нажмите снова.",
+                "en": "⏳ Payment not received yet. If you've already paid, wait 1-2 minutes and try again.",
+                "fr": "⏳ Paiement non reçu. Si vous avez déjà payé, attendez 1-2 minutes et réessayez."
+            }
+            await query.answer(pending_messages.get(lang, pending_messages["ru"]), show_alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error checking Crypto Pay invoice: {e}")
+        await query.answer("❌ Ошибка проверки. Попробуйте позже.", show_alert=True)
+
+
 def register_subscription_handlers(application):
     """Регистрирует обработчики подписки."""
     application.add_handler(CommandHandler("subscribe", subscribe_command))
@@ -729,7 +886,8 @@ def register_subscription_handlers(application):
     application.add_handler(CallbackQueryHandler(payment_method_callback, pattern=r"^paymethod:"))
     application.add_handler(CallbackQueryHandler(payment_callback, pattern=r"^payment:"))
     application.add_handler(CallbackQueryHandler(cancel_callback, pattern=r"^cancel:"))
+    application.add_handler(CallbackQueryHandler(check_crypto_pay_callback, pattern=r"^checkpay:"))
     
-    # Telegram Payments handlers
+    # Telegram Payments handlers (для обратной совместимости)
     application.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))

@@ -13,6 +13,7 @@ from bot.services.database import init_database, get_db
 from bot.services.ai_service import init_ai_service
 from bot.services.payment_monitor import init_payment_monitor, get_payment_monitor
 from bot.services.scheduler import init_scheduler, get_scheduler
+from bot.services.crypto_pay import init_crypto_pay
 from bot.handlers import register_all_handlers
 
 # Load environment variables
@@ -63,6 +64,14 @@ async def post_init(application: Application):
         }
     
     init_ai_service(ai_provider, ai_config)
+    
+    # Initialize Crypto Pay (card payments with crypto conversion)
+    crypto_pay_token = os.getenv("CRYPTO_PAY_TOKEN")
+    if crypto_pay_token:
+        init_crypto_pay(crypto_pay_token)
+        logger.info("Crypto Pay initialized - card payments enabled")
+    else:
+        logger.warning("CRYPTO_PAY_TOKEN not set - card payments disabled")
     
     # Initialize payment monitor (auto-confirmation via blockchain)
     wallet_address = os.getenv("WALLET_ADDRESS")
