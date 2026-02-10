@@ -61,8 +61,6 @@ class CryptoPayClient:
         currency: str = "USDT",
         description: str = "",
         payload: str = "",
-        paid_btn_name: str = "callback",
-        paid_btn_url: str = "",
         allow_comments: bool = False,
         allow_anonymous: bool = True,
         expires_in: int = 3600  # 1 час
@@ -75,8 +73,6 @@ class CryptoPayClient:
             currency: Валюта (USDT, TON, BTC, ETH и др.)
             description: Описание платежа
             payload: Произвольные данные (вернутся в webhook)
-            paid_btn_name: Тип кнопки после оплаты (callback, openUrl, closeBot)
-            paid_btn_url: URL для кнопки (если openUrl)
             allow_comments: Разрешить комментарии
             allow_anonymous: Разрешить анонимную оплату
             expires_in: Время жизни инвойса в секундах
@@ -89,14 +85,10 @@ class CryptoPayClient:
             "amount": str(amount),
             "description": description,
             "payload": payload,
-            "paid_btn_name": paid_btn_name,
             "allow_comments": allow_comments,
             "allow_anonymous": allow_anonymous,
             "expires_in": expires_in
         }
-        
-        if paid_btn_url:
-            data["paid_btn_url"] = paid_btn_url
         
         return await self._request("POST", "createInvoice", data)
     
