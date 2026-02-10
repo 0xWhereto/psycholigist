@@ -4,7 +4,7 @@ Message service - conversation history management.
 import logging
 from datetime import datetime
 
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models import Message
@@ -57,6 +57,83 @@ class MessageService:
             {"role": msg.role, "content": msg.content}
             for msg in messages
         ]
+    
+    @staticmethod
+    async def get_message_count(session: AsyncSession, user_id: int) -> int:
+        """Возвращает количество сообщений пользователя."""
+        result = await session.execute(
+            select(func.count(Message.id)).where(Message.user_id == user_id)
+        )
+        return result.scalar() or 0
+    
+    @staticmethod
+    async def get_old_messages(
+        session: AsyncSession,
+        user_id: int,
+        offset: int = 20
+    ) -> list[dict]:
+        """
+        Получает старые сообщения (те, что НЕ входят в последние `offset`).
+        Возвращает в хронологическом порядке.
+        """
+        # Находим ID последних `offset` сообщений
+        recent_ids_query = (
+            select(Message.id)
+            .where(Message.user_id == user_id)
+            .order_by(desc(Message.created_at))
+            .limit(offset)
+        )
+        
+        # Берём все остальные
+        result = await session.execute(
+            select(Message)
+            .where(Message.user_id == user_id)
+            .where(Message.id.not_in(recent_ids_query))
+            .order_by(asc(Message.created_at))
+        )
+        messages = list(result.scalars().all())
+        
+        return [
+            {"role": msg.role, "content": msg.content}
+            for msg in messages
+        ]
+    
+    @staticmethod
+    async def trim_old_messages(
+        session: AsyncSession,
+        user_id: int,
+        keep: int = 20
+    ) -> int:
+        """
+        Удаляет старые сообщения, оставляя последние `keep`.
+        Возвращает количество удалённых.
+        """
+        # Находим ID последних `keep` сообщений
+        recent_ids_result = await session.execute(
+            select(Message.id)
+            .where(Message.user_id == user_id)
+            .order_by(desc(Message.created_at))
+            .limit(keep)
+        )
+        recent_ids = [row[0] for row in recent_ids_result.fetchall()]
+        
+        if not recent_ids:
+            return 0
+        
+        # Удаляем все остальные
+        old_result = await session.execute(
+            select(Message)
+            .where(Message.user_id == user_id)
+            .where(Message.id.not_in(recent_ids))
+        )
+        old_messages = list(old_result.scalars().all())
+        
+        count = len(old_messages)
+        for msg in old_messages:
+            await session.delete(msg)
+        
+        logger.info(f"Trimmed {count} old messages for user {user_id}, kept {keep}")
+        return count
     
     @staticmethod
     async def clear_conversation(session: AsyncSession, user_id: int) -> int:

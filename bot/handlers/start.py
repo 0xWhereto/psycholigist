@@ -10,6 +10,8 @@ from bot.services.database import get_db
 from bot.services.user_service import UserService
 from bot.services.message_service import MessageService
 from bot.services.subscription_service import SubscriptionService, SUBSCRIPTION_PLANS
+from bot.services.ai_service import get_ai_service
+from bot.services.summary_service import SummaryService
 from bot.utils.texts import get_text
 from bot.utils.keyboards import get_main_menu_keyboard, get_back_to_menu_keyboard, get_subscription_keyboard
 
@@ -87,13 +89,24 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обрабатывает команду /reset — сброс диалога."""
+    """Обрабатывает команду /reset — сброс диалога с сохранением саммари."""
     user = update.effective_user
     db = get_db()
     
     async with db.session() as session:
         db_user = await UserService.get_user(session, user.id)
         lang = db_user.language_code if db_user else "ru"
+        
+        # Суммаризируем перед очисткой (долговременная память)
+        try:
+            history = await MessageService.get_conversation_history(session, user.id, limit=100)
+            if history and len(history) >= 4:
+                ai_service = get_ai_service()
+                await SummaryService.summarize_and_clear(
+                    session, ai_service, user.id, history
+                )
+        except Exception as e:
+            logger.warning(f"Summary before reset failed for {user.id}: {e}")
         
         await MessageService.clear_conversation(session, user.id)
     
@@ -164,8 +177,18 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     elif action == "reset":
-        # Сброс диалога
+        # Суммаризируем перед очисткой (долговременная память)
         async with db.session() as session:
+            try:
+                history = await MessageService.get_conversation_history(session, user.id, limit=100)
+                if history and len(history) >= 4:
+                    ai_service = get_ai_service()
+                    await SummaryService.summarize_and_clear(
+                        session, ai_service, user.id, history
+                    )
+            except Exception as e:
+                logger.warning(f"Summary before reset failed for {user.id}: {e}")
+            
             await MessageService.clear_conversation(session, user.id)
         
         reset_texts = {

@@ -13,6 +13,7 @@ from bot.services.user_service import UserService
 from bot.services.subscription_service import SubscriptionService
 from bot.services.message_service import MessageService
 from bot.services.ai_service import get_ai_service
+from bot.services.summary_service import SummaryService
 from bot.utils.texts import get_text
 
 logger = logging.getLogger(__name__)
@@ -130,10 +131,48 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         max_history = int(os.getenv("MAX_CONVERSATION_HISTORY", "20"))
         history = await MessageService.get_conversation_history(session, user.id, max_history)
         
+        # Загружаем долговременную память (саммари предыдущих сессий)
+        summary = await SummaryService.get_summary(session, user.id)
+        
+        # Если история переполнена — суммаризируем старые сообщения
+        total_messages = await MessageService.get_message_count(session, user.id)
+        if total_messages > max_history + 10:
+            try:
+                ai_service_for_summary = get_ai_service()
+                # Берём все сообщения которые не вошли в текущее окно
+                old_messages = await MessageService.get_old_messages(
+                    session, user.id, offset=max_history
+                )
+                if old_messages and len(old_messages) >= 4:
+                    await SummaryService.summarize_and_clear(
+                        session, ai_service_for_summary, user.id, old_messages
+                    )
+                    # Удаляем старые сообщения, оставляем только последние max_history
+                    await MessageService.trim_old_messages(session, user.id, keep=max_history)
+                    # Обновляем саммари
+                    summary = await SummaryService.get_summary(session, user.id)
+                    logger.info(f"Auto-summarized old messages for user {user.id}")
+            except Exception as e:
+                logger.error(f"Auto-summary failed for user {user.id}: {e}")
+        
+        # Формируем контекст с долговременной памятью
+        if summary:
+            memory_message = {
+                "role": "user",
+                "content": (
+                    f"[КОНТЕКСТ — долговременная память из предыдущих сессий, "
+                    f"не отвечай на это сообщение, просто учитывай эту информацию "
+                    f"о клиенте в своих ответах]\n\n{summary}"
+                )
+            }
+            history_with_memory = [memory_message] + history
+        else:
+            history_with_memory = history
+        
         # Generate response
         try:
             ai_service = get_ai_service()
-            response = await ai_service.generate_response(history)
+            response = await ai_service.generate_response(history_with_memory)
             
             # Save assistant response
             await MessageService.add_message(session, user.id, "assistant", response)
