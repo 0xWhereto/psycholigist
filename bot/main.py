@@ -6,7 +6,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import Application
 
 from bot.services.database import init_database, get_db
@@ -87,6 +87,39 @@ async def post_init(application: Application):
     _scheduler_task = asyncio.create_task(scheduler.start())
     logger.info("Subscription scheduler started - auto-renewal enabled")
     
+    # Set bot commands menu (appears in Telegram's "/" menu)
+    commands_ru = [
+        BotCommand("menu", "📋 Главное меню"),
+        BotCommand("start", "👋 Приветствие"),
+        BotCommand("subscribe", "💎 Подписка"),
+        BotCommand("status", "📊 Статус подписки"),
+        BotCommand("reset", "🔄 Новый диалог"),
+        BotCommand("help", "🆘 Помощь"),
+    ]
+    commands_en = [
+        BotCommand("menu", "📋 Main menu"),
+        BotCommand("start", "👋 Welcome"),
+        BotCommand("subscribe", "💎 Subscribe"),
+        BotCommand("status", "📊 Subscription status"),
+        BotCommand("reset", "🔄 New conversation"),
+        BotCommand("help", "🆘 Help"),
+    ]
+    commands_fr = [
+        BotCommand("menu", "📋 Menu principal"),
+        BotCommand("start", "👋 Bienvenue"),
+        BotCommand("subscribe", "💎 S'abonner"),
+        BotCommand("status", "📊 Statut abonnement"),
+        BotCommand("reset", "🔄 Nouvelle conversation"),
+        BotCommand("help", "🆘 Aide"),
+    ]
+    
+    await application.bot.set_my_commands(commands_ru, language_code="ru")
+    await application.bot.set_my_commands(commands_en, language_code="en")
+    await application.bot.set_my_commands(commands_fr, language_code="fr")
+    # Default fallback (English)
+    await application.bot.set_my_commands(commands_en)
+    
+    logger.info("Bot commands menu set")
     logger.info("Bot initialized successfully")
 
 

@@ -6,6 +6,66 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from bot.services.subscription_service import SUBSCRIPTION_PLANS
 
 
+def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
+    """Возвращает главное меню с кнопками."""
+    if lang == "ru":
+        buttons = [
+            [
+                InlineKeyboardButton("💬 Начать диалог", callback_data="menu:chat"),
+                InlineKeyboardButton("🔄 Новый диалог", callback_data="menu:reset"),
+            ],
+            [
+                InlineKeyboardButton("💎 Подписка", callback_data="menu:subscribe"),
+                InlineKeyboardButton("📊 Мой статус", callback_data="menu:status"),
+            ],
+            [
+                InlineKeyboardButton("🆘 Помощь и кризис", callback_data="menu:help"),
+            ],
+        ]
+    elif lang == "en":
+        buttons = [
+            [
+                InlineKeyboardButton("💬 Start chatting", callback_data="menu:chat"),
+                InlineKeyboardButton("🔄 New conversation", callback_data="menu:reset"),
+            ],
+            [
+                InlineKeyboardButton("💎 Subscribe", callback_data="menu:subscribe"),
+                InlineKeyboardButton("📊 My status", callback_data="menu:status"),
+            ],
+            [
+                InlineKeyboardButton("🆘 Help & crisis", callback_data="menu:help"),
+            ],
+        ]
+    else:  # fr
+        buttons = [
+            [
+                InlineKeyboardButton("💬 Commencer", callback_data="menu:chat"),
+                InlineKeyboardButton("🔄 Nouvelle conversation", callback_data="menu:reset"),
+            ],
+            [
+                InlineKeyboardButton("💎 S'abonner", callback_data="menu:subscribe"),
+                InlineKeyboardButton("📊 Mon statut", callback_data="menu:status"),
+            ],
+            [
+                InlineKeyboardButton("🆘 Aide & crise", callback_data="menu:help"),
+            ],
+        ]
+    
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_back_to_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
+    """Возвращает кнопку 'Назад в меню'."""
+    labels = {
+        "ru": "↩️ Главное меню",
+        "en": "↩️ Main menu",
+        "fr": "↩️ Menu principal",
+    }
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(labels.get(lang, labels["ru"]), callback_data="menu:back")]
+    ])
+
+
 def get_subscription_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
     """Возвращает клавиатуру выбора подписки."""
     monthly = SUBSCRIPTION_PLANS["monthly"]

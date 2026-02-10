@@ -11,14 +11,7 @@ TEXTS = {
 
 ⚠️ **Важно**: Я инструмент поддержки, не настоящий терапевт. Для профессионального сопровождения рекомендую обратиться к психологу.
 
-**Команды:**
-• /start — это сообщение
-• /subscribe — оформить подписку
-• /status — статус подписки
-• /reset — начать новый диалог
-• /help — помощь и ресурсы
-
-Что тебя сегодня беспокоит?
+Выбери действие ниже или просто напиши мне сообщение 💙
 """,
         "en": """
 Hello{name}! 👋
@@ -27,14 +20,7 @@ I'm a psychological support bot. I'm here to listen and help you understand your
 
 ⚠️ **Important**: I'm a support tool, not a real therapist. For professional guidance, I recommend consulting a psychologist.
 
-**Commands:**
-• /start — this message
-• /subscribe — get a subscription
-• /status — subscription status
-• /reset — start a new conversation
-• /help — help and resources
-
-What's on your mind today?
+Choose an action below or just send me a message 💙
 """,
         "fr": """
 Bonjour{name}! 👋
@@ -43,14 +29,7 @@ Je suis un bot de soutien psychologique. Je suis là pour t'écouter et t'aider 
 
 ⚠️ **Important**: Je suis un outil de soutien, pas un vrai thérapeute. Pour un accompagnement professionnel, je te recommande de consulter un psychologue.
 
-**Commandes:**
-• /start — ce message
-• /subscribe — s'abonner
-• /status — statut de l'abonnement
-• /reset — nouvelle conversation
-• /help — aide et ressources
-
-Qu'est-ce qui te préoccupe aujourd'hui?
+Choisis une action ci-dessous ou écris-moi simplement un message 💙
 """
     },
     
