@@ -142,10 +142,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(response)
             
         except Exception as e:
-            logger.error(f"AI generation error: {e}")
-            await update.message.reply_text(
-                get_text("error_generic", lang)
-            )
+            logger.error(f"AI generation error: {e}", exc_info=True)
+            error_msg = get_text("error_generic", lang)
+            
+            # Админу показываем детали ошибки
+            if is_admin(user.id):
+                error_msg += f"\n\n🔧 Debug: {type(e).__name__}: {e}"
+            
+            await update.message.reply_text(error_msg)
 
 
 def register_chat_handlers(application):
