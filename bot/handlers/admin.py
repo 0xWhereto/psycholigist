@@ -27,34 +27,50 @@ async def admin_payments_command(update: Update, context: ContextTypes.DEFAULT_T
     user = update.effective_user
     
     if not is_admin(user.id):
+        await update.message.reply_text(
+            f"⛔ Нет доступа.\n\nВаш ID: {user.id}\nADMIN_USER_ID: {os.getenv('ADMIN_USER_ID', 'не задан')}"
+        )
         return
     
     db = get_db()
     
     async with db.session() as session:
+        # Получаем ВСЕ платежи для отладки
+        from sqlalchemy import select, func
+        from bot.models import Payment
+        
+        total_result = await session.execute(select(func.count(Payment.id)))
+        total_count = total_result.scalar() or 0
+        
         pending_payments = await PaymentService.get_pending_payments(session)
         
         if not pending_payments:
-            await update.message.reply_text("✅ Нет ожидающих платежей")
+            await update.message.reply_text(
+                f"✅ Нет ожидающих платежей.\n\n📊 Всего платежей в базе: {total_count}"
+            )
             return
+        
+        await update.message.reply_text(
+            f"📋 Ожидающих: {len(pending_payments)} | Всего в базе: {total_count}"
+        )
         
         for payment in pending_payments:
             payer = await UserService.get_user(session, payment.user_id)
-            plan = SUBSCRIPTION_PLANS[payment.plan_type]
+            plan = SUBSCRIPTION_PLANS.get(payment.plan_type, {})
             
-            text = f"""
-🔔 **Платёж #{payment.id}**
-
-**Пользователь:** {payment.user_id}
-**Username:** @{payer.username if payer else 'N/A'}
-**План:** {plan['name_ru']}
-**Сумма:** ${payment.amount_usd:.2f}
-**Создан:** {payment.created_at.strftime('%d.%m.%Y %H:%M')}
-"""
+            text = (
+                f"🔔 <b>Платёж #{payment.id}</b>\n\n"
+                f"<b>Пользователь:</b> {payment.user_id}\n"
+                f"<b>Username:</b> @{payer.username if payer and payer.username else 'N/A'}\n"
+                f"<b>План:</b> {plan.get('name_ru', payment.plan_type)}\n"
+                f"<b>Сумма:</b> ${payment.amount_usd:.2f}\n"
+                f"<b>Статус:</b> {payment.status}\n"
+                f"<b>Создан:</b> {payment.created_at.strftime('%d.%m.%Y %H:%M')}"
+            )
             await update.message.reply_text(
                 text,
                 reply_markup=get_admin_payment_keyboard(payment.id),
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
 
 
