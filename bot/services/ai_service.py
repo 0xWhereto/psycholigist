@@ -67,9 +67,45 @@ class AIService:
             logger.info(f"Loaded knowledge base from {knowledge_path}")
         else:
             logger.warning(f"Knowledge base not found at {knowledge_path}")
+        
+        # Логируем размер промпта
+        est_tokens = self._estimate_tokens(self.system_prompt)
+        logger.info(f"Total system prompt: {len(self.system_prompt)} chars, ~{est_tokens} tokens")
+    
+    def _estimate_tokens(self, text: str) -> int:
+        """Грубая оценка токенов (1 токен ≈ 4 символа для латиницы, ≈ 2 для кириллицы)."""
+        return len(text) // 3  # Средняя оценка для мультиязычного текста
+    
+    def _trim_messages_to_fit(self, messages: list[dict], max_total_tokens: int = 25000) -> list[dict]:
+        """Обрезает историю сообщений, чтобы уместиться в лимит токенов."""
+        system_tokens = self._estimate_tokens(self.system_prompt)
+        reserve_for_response = 1500  # токены на ответ + буфер
+        available = max_total_tokens - system_tokens - reserve_for_response
+        
+        if available <= 0:
+            logger.warning(f"System prompt too large: ~{system_tokens} tokens, trimming to last 2 messages")
+            return messages[-2:] if len(messages) > 2 else messages
+        
+        # Считаем токены с конца (новые сообщения приоритетнее)
+        trimmed = []
+        total = 0
+        for msg in reversed(messages):
+            msg_tokens = self._estimate_tokens(msg["content"])
+            if total + msg_tokens > available:
+                break
+            trimmed.insert(0, msg)
+            total += msg_tokens
+        
+        if len(trimmed) < len(messages):
+            logger.info(f"Trimmed messages: {len(messages)} → {len(trimmed)} (~{total} tokens, system ~{system_tokens})")
+        
+        return trimmed
     
     async def generate_response(self, messages: list[dict]) -> str:
         """Генерирует ответ на основе истории сообщений."""
+        # Обрезаем если нужно, чтобы не превысить лимит токенов
+        messages = self._trim_messages_to_fit(messages)
+        
         try:
             if self.provider == "openai":
                 return await self._generate_openai(messages)
