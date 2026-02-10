@@ -18,9 +18,6 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
                 InlineKeyboardButton("💎 Подписка", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 Мой статус", callback_data="menu:status"),
             ],
-            [
-                InlineKeyboardButton("🆘 Помощь и кризис", callback_data="menu:help"),
-            ],
         ]
     elif lang == "en":
         buttons = [
@@ -32,9 +29,6 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
                 InlineKeyboardButton("💎 Subscribe", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 My status", callback_data="menu:status"),
             ],
-            [
-                InlineKeyboardButton("🆘 Help & crisis", callback_data="menu:help"),
-            ],
         ]
     else:  # fr
         buttons = [
@@ -45,9 +39,6 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton("💎 S'abonner", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 Mon statut", callback_data="menu:status"),
-            ],
-            [
-                InlineKeyboardButton("🆘 Aide & crise", callback_data="menu:help"),
             ],
         ]
     

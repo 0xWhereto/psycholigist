@@ -309,7 +309,7 @@ Restaurer l'abonnement: /subscribe
 
 
 async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обрабатывает выбор плана подписки."""
+    """Обрабатывает выбор плана подписки — сразу показывает адрес для оплаты."""
     query = update.callback_query
     await query.answer()
     
@@ -331,64 +331,92 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
     
     plan = SUBSCRIPTION_PLANS[plan_type]
     db = get_db()
+    wallet_address = os.getenv("WALLET_ADDRESS", "")
     
     async with db.session() as session:
         db_user = await UserService.get_user(session, user.id)
         lang = db_user.language_code if db_user else "ru"
+        
+        # Создаём pending payment сразу
+        payment = await PaymentService.create_pending_payment(
+            session,
+            user_id=user.id,
+            plan_type=plan_type
+        )
     
     price_usd = plan.get('price_usd', 20)
     
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    
     payment_texts = {
         "ru": f"""
-💰 **{plan.get('name_ru')}**
+💳 **Оплата подписки**
 
+**План:** {plan['name_ru']}
 **Сумма:** {price_usd:.0f} USDT
 
-💡 **Как оплатить:**
-1. Нажмите кнопку "Оплатить"
-2. Откроется Telegram Wallet
-3. Подтвердите перевод {price_usd:.0f} USDT
+📋 **Адрес для перевода:**
+`{wallet_address}`
+
+1️⃣ Нажмите "Открыть кошелёк"
+2️⃣ Отправьте **{price_usd:.0f} USDT** на адрес выше
+3️⃣ После перевода нажмите "Я оплатил(а)"
 
 ⚠️ **Нет USDT?**
-Откройте @wallet → Пополнить → Купите USDT картой
-
-После оплаты подписка активируется автоматически!
+В @wallet нажмите "Пополнить" → купите USDT картой
 """,
         "en": f"""
-💰 **{plan.get('name_en')}**
+💳 **Subscription Payment**
 
+**Plan:** {plan['name_en']}
 **Amount:** {price_usd:.0f} USDT
 
-💡 **How to pay:**
-1. Click "Pay" button
-2. Telegram Wallet will open
-3. Confirm the {price_usd:.0f} USDT transfer
+📋 **Transfer address:**
+`{wallet_address}`
+
+1️⃣ Click "Open Wallet"
+2️⃣ Send **{price_usd:.0f} USDT** to the address above
+3️⃣ After transfer click "I've paid"
 
 ⚠️ **No USDT?**
-Open @wallet → Top up → Buy USDT with card
-
-Subscription activates automatically after payment!
+In @wallet click "Top up" → buy USDT with card
 """,
         "fr": f"""
-💰 **{plan.get('name_fr')}**
+💳 **Paiement d'abonnement**
 
+**Formule:** {plan['name_fr']}
 **Montant:** {price_usd:.0f} USDT
 
-💡 **Comment payer:**
-1. Cliquez sur "Payer"
-2. Telegram Wallet s'ouvrira
-3. Confirmez le transfert de {price_usd:.0f} USDT
+📋 **Adresse de transfert:**
+`{wallet_address}`
+
+1️⃣ Cliquez sur "Ouvrir le portefeuille"
+2️⃣ Envoyez **{price_usd:.0f} USDT** à l'adresse ci-dessus
+3️⃣ Après le transfert, cliquez "J'ai payé"
 
 ⚠️ **Pas d'USDT?**
-Ouvrez @wallet → Recharger → Achetez USDT par carte
-
-L'abonnement s'active automatiquement après le paiement!
+Dans @wallet cliquez "Recharger" → achetez USDT par carte
 """
     }
     
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "💰 Открыть кошелёк" if lang == "ru" else "💰 Open Wallet" if lang == "en" else "💰 Ouvrir le portefeuille",
+            url="https://t.me/wallet"
+        )],
+        [InlineKeyboardButton(
+            "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
+            callback_data=f"payment:confirm:{payment.id}"
+        )],
+        [InlineKeyboardButton(
+            "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
+            callback_data="subscribe:cancel"
+        )]
+    ])
+    
     await query.edit_message_text(
         payment_texts.get(lang, payment_texts["ru"]),
-        reply_markup=get_payment_keyboard(plan_type, lang, price_usd),
+        reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
