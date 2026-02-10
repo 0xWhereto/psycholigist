@@ -20,7 +20,7 @@ class Payment(Base):
     currency: Mapped[str] = mapped_column(String(10), default="USDT")  # USDT, TON
     
     # pending, awaiting_confirmation, completed, failed, cancelled
-    status: Mapped[str] = mapped_column(String(20), default="pending")
+    status: Mapped[str] = mapped_column(String(30), default="pending")
     
     plan_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'monthly' или 'yearly'
     

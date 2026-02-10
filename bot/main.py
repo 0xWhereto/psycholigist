@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 
+import sqlalchemy
 from dotenv import load_dotenv
 from telegram import BotCommand, Update
 from telegram.ext import Application
@@ -42,6 +43,16 @@ async def post_init(application: Application):
     
     db = init_database(database_url)
     await db.init_db()
+    
+    # Migrate: expand payments.status column if needed
+    try:
+        async with db.engine.begin() as conn:
+            await conn.execute(
+                sqlalchemy.text("ALTER TABLE payments ALTER COLUMN status TYPE VARCHAR(30)")
+            )
+            logger.info("Migrated payments.status to VARCHAR(30)")
+    except Exception as e:
+        logger.debug(f"payments.status migration skipped: {e}")
     
     # Initialize AI service
     ai_provider = os.getenv("AI_PROVIDER", "anthropic")
