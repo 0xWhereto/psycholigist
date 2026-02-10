@@ -51,41 +51,29 @@ def get_subscription_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(buttons)
 
 
-def get_payment_method_keyboard(plan_type: str, lang: str = "ru", price_usd: float = 0) -> InlineKeyboardMarkup:
-    """Возвращает клавиатуру выбора способа оплаты."""
+def get_payment_keyboard(plan_type: str, lang: str = "ru", price_usd: float = 0) -> InlineKeyboardMarkup:
+    """Возвращает клавиатуру для оплаты USDT."""
     if lang == "ru":
         buttons = [
             [InlineKeyboardButton(
-                f"💳 Карта (${price_usd:.0f})",
-                callback_data=f"paymethod:card:{plan_type}"
-            )],
-            [InlineKeyboardButton(
-                "🪙 Криптовалюта (USDT/TON)",
-                callback_data=f"paymethod:crypto:{plan_type}"
+                f"💰 Оплатить {price_usd:.0f} USDT",
+                callback_data=f"pay:usdt:{plan_type}"
             )],
             [InlineKeyboardButton("❌ Отмена", callback_data="subscribe:cancel")]
         ]
     elif lang == "en":
         buttons = [
             [InlineKeyboardButton(
-                f"💳 Card (${price_usd:.0f})",
-                callback_data=f"paymethod:card:{plan_type}"
-            )],
-            [InlineKeyboardButton(
-                "🪙 Cryptocurrency (USDT/TON)",
-                callback_data=f"paymethod:crypto:{plan_type}"
+                f"💰 Pay {price_usd:.0f} USDT",
+                callback_data=f"pay:usdt:{plan_type}"
             )],
             [InlineKeyboardButton("❌ Cancel", callback_data="subscribe:cancel")]
         ]
     else:  # fr
         buttons = [
             [InlineKeyboardButton(
-                f"💳 Carte (${price_usd:.0f})",
-                callback_data=f"paymethod:card:{plan_type}"
-            )],
-            [InlineKeyboardButton(
-                "🪙 Cryptomonnaie (USDT/TON)",
-                callback_data=f"paymethod:crypto:{plan_type}"
+                f"💰 Payer {price_usd:.0f} USDT",
+                callback_data=f"pay:usdt:{plan_type}"
             )],
             [InlineKeyboardButton("❌ Annuler", callback_data="subscribe:cancel")]
         ]
