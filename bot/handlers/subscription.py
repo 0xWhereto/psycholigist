@@ -766,41 +766,59 @@ async def payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text("❌ Платёж не найден / Payment not found")
                 return
             
-            # Сообщение об автоматической проверке
+            plan = SUBSCRIPTION_PLANS.get(payment.plan_type, {})
+            
+            # Сообщение пользователю
             auto_confirm_messages = {
-                "ru": """
-⏳ **Платёж проверяется автоматически**
-
-Система проверяет поступление средств на кошелёк.
-Как только платёж будет обнаружен, подписка активируется автоматически.
-
-Обычно это занимает 1-5 минут.
-Вы получите уведомление. 💙
-""",
-                "en": """
-⏳ **Payment is being verified automatically**
-
-The system is checking for incoming funds.
-Once the payment is detected, your subscription will be activated automatically.
-
-This usually takes 1-5 minutes.
-You'll receive a notification. 💙
-""",
-                "fr": """
-⏳ **Paiement en cours de vérification automatique**
-
-Le système vérifie la réception des fonds.
-Dès que le paiement sera détecté, votre abonnement sera activé automatiquement.
-
-Cela prend généralement 1 à 5 minutes.
-Vous recevrez une notification. 💙
-"""
+                "ru": (
+                    "⏳ <b>Платёж проверяется</b>\n\n"
+                    "Система проверяет поступление средств на кошелёк.\n"
+                    "Если автоматическая проверка не сработает, администратор подтвердит вручную.\n\n"
+                    "Вы получите уведомление, как только подписка будет активирована. 💙"
+                ),
+                "en": (
+                    "⏳ <b>Payment is being verified</b>\n\n"
+                    "The system is checking for incoming funds.\n"
+                    "If auto-verification doesn't work, an admin will confirm manually.\n\n"
+                    "You'll receive a notification once your subscription is activated. 💙"
+                ),
+                "fr": (
+                    "⏳ <b>Paiement en cours de vérification</b>\n\n"
+                    "Le système vérifie la réception des fonds.\n"
+                    "Si la vérification automatique ne fonctionne pas, un administrateur confirmera manuellement.\n\n"
+                    "Vous recevrez une notification dès que votre abonnement sera activé. 💙"
+                ),
             }
             
             await query.edit_message_text(
                 auto_confirm_messages.get(lang, auto_confirm_messages["ru"]),
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
+            
+            # Уведомляем админа о новом платеже
+            admin_id = os.getenv("ADMIN_USER_ID")
+            if admin_id:
+                try:
+                    from bot.utils.keyboards import get_admin_payment_keyboard
+                    
+                    admin_text = (
+                        f"🔔 <b>Новый платёж ожидает подтверждения!</b>\n\n"
+                        f"<b>Пользователь:</b> {user.id} (@{user.username or 'N/A'})\n"
+                        f"<b>Имя:</b> {user.first_name or ''}\n"
+                        f"<b>План:</b> {plan.get('name_ru', payment.plan_type)}\n"
+                        f"<b>Сумма:</b> ${payment.amount_usd:.0f} USDT\n"
+                        f"<b>Платёж #</b>{payment.id}\n\n"
+                        f"Подтвердите или отклоните:"
+                    )
+                    
+                    await context.bot.send_message(
+                        chat_id=int(admin_id),
+                        text=admin_text,
+                        reply_markup=get_admin_payment_keyboard(payment.id),
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to notify admin about payment: {e}")
 
 
 async def pre_checkout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
