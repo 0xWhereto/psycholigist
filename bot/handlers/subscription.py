@@ -329,96 +329,95 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
     if plan_type not in SUBSCRIPTION_PLANS:
         return
     
-    plan = SUBSCRIPTION_PLANS[plan_type]
-    db = get_db()
-    wallet_address = os.getenv("WALLET_ADDRESS", "")
-    
-    async with db.session() as session:
-        db_user = await UserService.get_user(session, user.id)
-        lang = db_user.language_code if db_user else "ru"
+    try:
+        plan = SUBSCRIPTION_PLANS[plan_type]
+        db = get_db()
+        wallet_address = os.getenv("WALLET_ADDRESS", "")
         
-        # Создаём pending payment сразу
-        payment = await PaymentService.create_pending_payment(
-            session,
-            user_id=user.id,
-            plan_type=plan_type
+        async with db.session() as session:
+            db_user = await UserService.get_user(session, user.id)
+            lang = db_user.language_code if db_user else "ru"
+            
+            # Создаём pending payment сразу
+            payment = await PaymentService.create_pending_payment(
+                session,
+                user_id=user.id,
+                plan_type=plan_type
+            )
+            payment_id = payment.id
+        
+        price_usd = plan.get('price_usd', 20)
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        payment_texts = {
+            "ru": (
+                "💳 <b>Оплата подписки</b>\n\n"
+                f"<b>План:</b> {plan['name_ru']}\n"
+                f"<b>Сумма:</b> {price_usd:.0f} USDT\n\n"
+                f"📋 <b>Адрес для перевода:</b>\n"
+                f"<code>{wallet_address}</code>\n\n"
+                f"1️⃣ Нажмите «Открыть кошелёк»\n"
+                f"2️⃣ Отправьте <b>{price_usd:.0f} USDT</b> на адрес выше\n"
+                f"3️⃣ После перевода нажмите «Я оплатил(а)»\n\n"
+                f"⚠️ <b>Нет USDT?</b>\n"
+                f"В @wallet нажмите «Пополнить» → купите USDT картой"
+            ),
+            "en": (
+                "💳 <b>Subscription Payment</b>\n\n"
+                f"<b>Plan:</b> {plan['name_en']}\n"
+                f"<b>Amount:</b> {price_usd:.0f} USDT\n\n"
+                f"📋 <b>Transfer address:</b>\n"
+                f"<code>{wallet_address}</code>\n\n"
+                f"1️⃣ Click «Open Wallet»\n"
+                f"2️⃣ Send <b>{price_usd:.0f} USDT</b> to the address above\n"
+                f"3️⃣ After transfer click «I've paid»\n\n"
+                f"⚠️ <b>No USDT?</b>\n"
+                f"In @wallet click «Top up» → buy USDT with card"
+            ),
+            "fr": (
+                "💳 <b>Paiement d'abonnement</b>\n\n"
+                f"<b>Formule:</b> {plan['name_fr']}\n"
+                f"<b>Montant:</b> {price_usd:.0f} USDT\n\n"
+                f"📋 <b>Adresse de transfert:</b>\n"
+                f"<code>{wallet_address}</code>\n\n"
+                f"1️⃣ Cliquez sur «Ouvrir le portefeuille»\n"
+                f"2️⃣ Envoyez <b>{price_usd:.0f} USDT</b> à l'adresse ci-dessus\n"
+                f"3️⃣ Après le transfert, cliquez «J'ai payé»\n\n"
+                f"⚠️ <b>Pas d'USDT?</b>\n"
+                f"Dans @wallet cliquez «Recharger» → achetez USDT par carte"
+            ),
+        }
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                "💰 Открыть кошелёк" if lang == "ru" else "💰 Open Wallet" if lang == "en" else "💰 Ouvrir le portefeuille",
+                url="https://t.me/wallet"
+            )],
+            [InlineKeyboardButton(
+                "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
+                callback_data=f"payment:confirm:{payment_id}"
+            )],
+            [InlineKeyboardButton(
+                "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
+                callback_data="subscribe:cancel"
+            )]
+        ])
+        
+        await query.edit_message_text(
+            payment_texts.get(lang, payment_texts["ru"]),
+            reply_markup=keyboard,
+            parse_mode="HTML"
         )
     
-    price_usd = plan.get('price_usd', 20)
-    
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-    
-    payment_texts = {
-        "ru": f"""
-💳 **Оплата подписки**
-
-**План:** {plan['name_ru']}
-**Сумма:** {price_usd:.0f} USDT
-
-📋 **Адрес для перевода:**
-`{wallet_address}`
-
-1️⃣ Нажмите "Открыть кошелёк"
-2️⃣ Отправьте **{price_usd:.0f} USDT** на адрес выше
-3️⃣ После перевода нажмите "Я оплатил(а)"
-
-⚠️ **Нет USDT?**
-В @wallet нажмите "Пополнить" → купите USDT картой
-""",
-        "en": f"""
-💳 **Subscription Payment**
-
-**Plan:** {plan['name_en']}
-**Amount:** {price_usd:.0f} USDT
-
-📋 **Transfer address:**
-`{wallet_address}`
-
-1️⃣ Click "Open Wallet"
-2️⃣ Send **{price_usd:.0f} USDT** to the address above
-3️⃣ After transfer click "I've paid"
-
-⚠️ **No USDT?**
-In @wallet click "Top up" → buy USDT with card
-""",
-        "fr": f"""
-💳 **Paiement d'abonnement**
-
-**Formule:** {plan['name_fr']}
-**Montant:** {price_usd:.0f} USDT
-
-📋 **Adresse de transfert:**
-`{wallet_address}`
-
-1️⃣ Cliquez sur "Ouvrir le portefeuille"
-2️⃣ Envoyez **{price_usd:.0f} USDT** à l'adresse ci-dessus
-3️⃣ Après le transfert, cliquez "J'ai payé"
-
-⚠️ **Pas d'USDT?**
-Dans @wallet cliquez "Recharger" → achetez USDT par carte
-"""
-    }
-    
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton(
-            "💰 Открыть кошелёк" if lang == "ru" else "💰 Open Wallet" if lang == "en" else "💰 Ouvrir le portefeuille",
-            url="https://t.me/wallet"
-        )],
-        [InlineKeyboardButton(
-            "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
-            callback_data=f"payment:confirm:{payment.id}"
-        )],
-        [InlineKeyboardButton(
-            "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
-            callback_data="subscribe:cancel"
-        )]
-    ])
-    
-    await query.edit_message_text(
-        payment_texts.get(lang, payment_texts["ru"]),
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    except Exception as e:
+        logger.error(f"subscription_callback error for user {user.id}: {e}", exc_info=True)
+        try:
+            await query.edit_message_text(
+                f"❌ Произошла ошибка. Попробуйте позже или напишите /subscribe\n\nОшибка: {e}"
+            )
+        except Exception:
+            pass
 
 
 async def pay_usdt_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
