@@ -92,8 +92,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         has_subscription = await SubscriptionService.has_active_subscription(session, user.id)
         in_grace = await SubscriptionService.is_in_grace_period(session, user.id, grace_days)
         
+        # Админ — безлимит без подписки
+        from bot.handlers.admin import is_admin
+        
         # Check free message limit
-        if not has_subscription and not in_grace:
+        if not has_subscription and not in_grace and not is_admin(user.id):
             remaining = await UserService.get_free_messages_remaining(session, db_user, free_limit)
             
             if remaining <= 0:
