@@ -37,7 +37,7 @@ class Settings:
     MAX_CONVERSATION_HISTORY: int = int(os.getenv("MAX_CONVERSATION_HISTORY", "20"))
     
     # Subscriptions
-    FREE_TIER_DAILY_MESSAGES: int = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "3"))
+    FREE_TIER_DAILY_MESSAGES: int = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "10"))
     GRACE_PERIOD_DAYS: int = int(os.getenv("GRACE_PERIOD_DAYS", "3"))
     
     # Crypto Wallet

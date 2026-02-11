@@ -75,7 +75,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     
     db = get_db()
-    free_limit = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "3"))
+    free_limit = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "10"))
     grace_days = int(os.getenv("GRACE_PERIOD_DAYS", "3"))
     
     async with db.session() as session:
