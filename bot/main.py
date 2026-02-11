@@ -15,6 +15,7 @@ from bot.services.ai_service import init_ai_service
 from bot.services.payment_monitor import init_payment_monitor, get_payment_monitor
 from bot.services.scheduler import init_scheduler, get_scheduler
 from bot.services.crypto_pay import init_crypto_pay
+from bot.services.mixpay import init_mixpay
 from bot.handlers import register_all_handlers
 
 # Load environment variables
@@ -83,6 +84,14 @@ async def post_init(application: Application):
         logger.info("Crypto Pay initialized - card payments enabled")
     else:
         logger.warning("CRYPTO_PAY_TOKEN not set - card payments disabled")
+    
+    # Initialize MixPay (card → USDT gateway)
+    mixpay_payee_id = os.getenv("MIXPAY_PAYEE_ID")
+    if mixpay_payee_id:
+        init_mixpay(mixpay_payee_id)
+        logger.info("MixPay initialized - card-to-USDT payments enabled")
+    else:
+        logger.warning("MIXPAY_PAYEE_ID not set - MixPay payments disabled")
     
     # Initialize payment monitor (auto-confirmation via blockchain)
     wallet_address = os.getenv("WALLET_ADDRESS")

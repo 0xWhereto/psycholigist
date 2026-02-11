@@ -332,13 +332,12 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
     try:
         plan = SUBSCRIPTION_PLANS[plan_type]
         db = get_db()
-        wallet_address = os.getenv("WALLET_ADDRESS", "")
         
         async with db.session() as session:
             db_user = await UserService.get_user(session, user.id)
             lang = db_user.language_code if db_user else "ru"
             
-            # Создаём pending payment сразу
+            # Создаём pending payment
             payment = await PaymentService.create_pending_payment(
                 session,
                 user_id=user.id,
@@ -349,66 +348,87 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
         price_usd = plan.get('price_usd', 20)
         
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        from bot.services.mixpay import get_mixpay, MixPayService
         
-        payment_texts = {
-            "ru": (
-                "💳 <b>Оплата подписки</b>\n\n"
-                f"<b>План:</b> {plan['name_ru']}\n"
-                f"<b>Сумма:</b> {price_usd:.0f} USDT\n\n"
-                f"📋 <b>Адрес для перевода:</b>\n"
-                f"<code>{wallet_address}</code>\n\n"
-                f"1️⃣ Нажмите «Открыть кошелёк»\n"
-                f"2️⃣ Отправьте <b>{price_usd:.0f} USDT</b> на адрес выше\n"
-                f"3️⃣ После перевода нажмите «Я оплатил(а)»\n\n"
-                f"⚠️ <b>Нет USDT?</b>\n"
-                f"В @wallet нажмите «Пополнить» → купите USDT картой"
-            ),
-            "en": (
-                "💳 <b>Subscription Payment</b>\n\n"
-                f"<b>Plan:</b> {plan['name_en']}\n"
-                f"<b>Amount:</b> {price_usd:.0f} USDT\n\n"
-                f"📋 <b>Transfer address:</b>\n"
-                f"<code>{wallet_address}</code>\n\n"
-                f"1️⃣ Click «Open Wallet»\n"
-                f"2️⃣ Send <b>{price_usd:.0f} USDT</b> to the address above\n"
-                f"3️⃣ After transfer click «I've paid»\n\n"
-                f"⚠️ <b>No USDT?</b>\n"
-                f"In @wallet click «Top up» → buy USDT with card"
-            ),
-            "fr": (
-                "💳 <b>Paiement d'abonnement</b>\n\n"
-                f"<b>Formule:</b> {plan['name_fr']}\n"
-                f"<b>Montant:</b> {price_usd:.0f} USDT\n\n"
-                f"📋 <b>Adresse de transfert:</b>\n"
-                f"<code>{wallet_address}</code>\n\n"
-                f"1️⃣ Cliquez sur «Ouvrir le portefeuille»\n"
-                f"2️⃣ Envoyez <b>{price_usd:.0f} USDT</b> à l'adresse ci-dessus\n"
-                f"3️⃣ Après le transfert, cliquez «J'ai payé»\n\n"
-                f"⚠️ <b>Pas d'USDT?</b>\n"
-                f"Dans @wallet cliquez «Recharger» → achetez USDT par carte"
-            ),
-        }
+        mixpay = get_mixpay()
         
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(
-                "💰 Открыть кошелёк" if lang == "ru" else "💰 Open Wallet" if lang == "en" else "💰 Ouvrir le portefeuille",
-                url="https://t.me/wallet"
-            )],
-            [InlineKeyboardButton(
-                "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
-                callback_data=f"payment:confirm:{payment_id}"
-            )],
-            [InlineKeyboardButton(
-                "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
-                callback_data="subscribe:cancel"
-            )]
-        ])
-        
-        await query.edit_message_text(
-            payment_texts.get(lang, payment_texts["ru"]),
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
+        if mixpay:
+            # MixPay: оплата картой → USDT
+            order_id = MixPayService.generate_order_id(user.id, plan_type)
+            
+            # Сохраняем order_id в payment
+            async with db.session() as session:
+                from sqlalchemy import select
+                from bot.models import Payment
+                result = await session.execute(
+                    select(Payment).where(Payment.id == payment_id)
+                )
+                p = result.scalar_one()
+                p.tx_hash = order_id  # Используем tx_hash для хранения MixPay order_id
+                p.note = "MixPay card payment"
+            
+            mp_result = await mixpay.create_payment(
+                amount_usd=price_usd,
+                order_id=order_id,
+                description=f"Subscription {plan_type}"
+            )
+            
+            if mp_result:
+                payment_url = mp_result["payment_url"]
+                
+                payment_texts = {
+                    "ru": (
+                        "💳 <b>Оплата подписки</b>\n\n"
+                        f"<b>План:</b> {plan['name_ru']}\n"
+                        f"<b>Сумма:</b> ${price_usd:.0f}\n\n"
+                        "Нажмите кнопку ниже — откроется страница оплаты.\n"
+                        "Принимаются Visa, MasterCard и криптовалюта.\n\n"
+                        "После оплаты подписка активируется автоматически! 💙"
+                    ),
+                    "en": (
+                        "💳 <b>Subscription Payment</b>\n\n"
+                        f"<b>Plan:</b> {plan['name_en']}\n"
+                        f"<b>Amount:</b> ${price_usd:.0f}\n\n"
+                        "Click the button below to open the payment page.\n"
+                        "Visa, MasterCard and cryptocurrency accepted.\n\n"
+                        "Your subscription will activate automatically after payment! 💙"
+                    ),
+                    "fr": (
+                        "💳 <b>Paiement d'abonnement</b>\n\n"
+                        f"<b>Formule:</b> {plan['name_fr']}\n"
+                        f"<b>Montant:</b> ${price_usd:.0f}\n\n"
+                        "Cliquez sur le bouton ci-dessous pour ouvrir la page de paiement.\n"
+                        "Visa, MasterCard et cryptomonnaie acceptés.\n\n"
+                        "Votre abonnement sera activé automatiquement après le paiement! 💙"
+                    ),
+                }
+                
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton(
+                        "💳 Оплатить картой" if lang == "ru" else "💳 Pay with Card" if lang == "en" else "💳 Payer par carte",
+                        url=payment_url
+                    )],
+                    [InlineKeyboardButton(
+                        "🔄 Проверить оплату" if lang == "ru" else "🔄 Check payment" if lang == "en" else "🔄 Vérifier le paiement",
+                        callback_data=f"mixpay:check:{order_id}:{payment_id}"
+                    )],
+                    [InlineKeyboardButton(
+                        "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
+                        callback_data="subscribe:cancel"
+                    )]
+                ])
+                
+                await query.edit_message_text(
+                    payment_texts.get(lang, payment_texts["ru"]),
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
+                )
+            else:
+                # MixPay не создал платёж — fallback на ручной перевод
+                await _show_manual_payment(query, plan, price_usd, payment_id, lang)
+        else:
+            # MixPay не настроен — ручной перевод
+            await _show_manual_payment(query, plan, price_usd, payment_id, lang)
     
     except Exception as e:
         logger.error(f"subscription_callback error for user {user.id}: {e}", exc_info=True)
@@ -418,6 +438,60 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
             )
         except Exception:
             pass
+
+
+async def _show_manual_payment(query, plan, price_usd, payment_id, lang):
+    """Fallback: показывает адрес кошелька для ручного перевода."""
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    
+    wallet_address = os.getenv("WALLET_ADDRESS", "")
+    
+    payment_texts = {
+        "ru": (
+            "💳 <b>Оплата подписки</b>\n\n"
+            f"<b>План:</b> {plan['name_ru']}\n"
+            f"<b>Сумма:</b> {price_usd:.0f} USDT\n\n"
+            f"📋 <b>Адрес для перевода:</b>\n"
+            f"<code>{wallet_address}</code>\n\n"
+            f"Отправьте <b>{price_usd:.0f} USDT</b> на адрес выше,\n"
+            f"затем нажмите «Я оплатил(а)»."
+        ),
+        "en": (
+            "💳 <b>Subscription Payment</b>\n\n"
+            f"<b>Plan:</b> {plan['name_en']}\n"
+            f"<b>Amount:</b> {price_usd:.0f} USDT\n\n"
+            f"📋 <b>Transfer address:</b>\n"
+            f"<code>{wallet_address}</code>\n\n"
+            f"Send <b>{price_usd:.0f} USDT</b> to the address above,\n"
+            f"then click «I've paid»."
+        ),
+        "fr": (
+            "💳 <b>Paiement d'abonnement</b>\n\n"
+            f"<b>Formule:</b> {plan['name_fr']}\n"
+            f"<b>Montant:</b> {price_usd:.0f} USDT\n\n"
+            f"📋 <b>Adresse de transfert:</b>\n"
+            f"<code>{wallet_address}</code>\n\n"
+            f"Envoyez <b>{price_usd:.0f} USDT</b> à l'adresse ci-dessus,\n"
+            f"puis cliquez «J'ai payé»."
+        ),
+    }
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "✅ Я оплатил(а)" if lang == "ru" else "✅ I've paid" if lang == "en" else "✅ J'ai payé",
+            callback_data=f"payment:confirm:{payment_id}"
+        )],
+        [InlineKeyboardButton(
+            "❌ Отмена" if lang == "ru" else "❌ Cancel" if lang == "en" else "❌ Annuler",
+            callback_data="subscribe:cancel"
+        )]
+    ])
+    
+    await query.edit_message_text(
+        payment_texts.get(lang, payment_texts["ru"]),
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
 
 async def pay_usdt_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1028,6 +1102,124 @@ Vous avez maintenant un accès illimité.
         await query.answer("❌ Ошибка проверки. Попробуйте позже.", show_alert=True)
 
 
+async def mixpay_check_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверяет статус платежа MixPay."""
+    query = update.callback_query
+    user = update.effective_user
+    data = query.data
+    
+    if not data.startswith("mixpay:check:"):
+        return
+    
+    parts = data.split(":")
+    order_id = parts[2]
+    payment_id = int(parts[3])
+    
+    from bot.services.mixpay import get_mixpay
+    mixpay = get_mixpay()
+    
+    if not mixpay:
+        await query.answer("❌ MixPay не настроен", show_alert=True)
+        return
+    
+    db = get_db()
+    
+    async with db.session() as session:
+        db_user = await UserService.get_user(session, user.id)
+        lang = db_user.language_code if db_user else "ru"
+    
+    try:
+        result = await mixpay.check_payment_status(order_id)
+        
+        if not result:
+            await query.answer("❌ Ошибка проверки", show_alert=True)
+            return
+        
+        status = result["status"]
+        
+        if status == "success":
+            await query.answer()
+            
+            # Активируем подписку
+            async with db.session() as session:
+                from sqlalchemy import select
+                from bot.models import Payment
+                
+                p_result = await session.execute(
+                    select(Payment).where(Payment.id == payment_id)
+                )
+                payment = p_result.scalar_one_or_none()
+                
+                if payment and payment.status != "completed":
+                    payment.status = "completed"
+                    payment.note = f"MixPay card payment (order: {order_id})"
+                    payment.confirmed_at = __import__('datetime').datetime.utcnow()
+                    
+                    subscription = await SubscriptionService.create_subscription(
+                        session,
+                        user_id=user.id,
+                        plan_type=payment.plan_type,
+                        payment_id=str(payment.id)
+                    )
+                    
+                    plan = SUBSCRIPTION_PLANS[payment.plan_type]
+                    
+                    success_texts = {
+                        "ru": (
+                            "✅ <b>Оплата прошла успешно!</b>\n\n"
+                            f"<b>План:</b> {plan['name_ru']}\n"
+                            f"<b>Действует до:</b> {subscription.expires_at.strftime('%d.%m.%Y')}\n\n"
+                            "Спасибо за покупку! 💙\n"
+                            "Теперь у вас неограниченный доступ."
+                        ),
+                        "en": (
+                            "✅ <b>Payment successful!</b>\n\n"
+                            f"<b>Plan:</b> {plan['name_en']}\n"
+                            f"<b>Valid until:</b> {subscription.expires_at.strftime('%d.%m.%Y')}\n\n"
+                            "Thank you! 💙\n"
+                            "You now have unlimited access."
+                        ),
+                        "fr": (
+                            "✅ <b>Paiement réussi!</b>\n\n"
+                            f"<b>Formule:</b> {plan['name_fr']}\n"
+                            f"<b>Valable jusqu'au:</b> {subscription.expires_at.strftime('%d.%m.%Y')}\n\n"
+                            "Merci! 💙\n"
+                            "Vous avez maintenant un accès illimité."
+                        ),
+                    }
+                    
+                    await query.edit_message_text(
+                        success_texts.get(lang, success_texts["ru"]),
+                        parse_mode="HTML"
+                    )
+                else:
+                    await query.edit_message_text("✅ Подписка уже активирована!")
+        
+        elif status == "pending":
+            pending_texts = {
+                "ru": "⏳ Платёж обрабатывается. Подождите 1-2 минуты и проверьте снова.",
+                "en": "⏳ Payment is processing. Wait 1-2 minutes and check again.",
+                "fr": "⏳ Paiement en cours de traitement. Attendez 1-2 minutes et vérifiez à nouveau."
+            }
+            await query.answer(pending_texts.get(lang, pending_texts["ru"]), show_alert=True)
+        
+        elif status == "failed":
+            reason = result.get("failure_reason", "Unknown")
+            await query.answer(f"❌ Платёж не прошёл: {reason}", show_alert=True)
+        
+        else:  # unpaid
+            unpaid_texts = {
+                "ru": "⏳ Оплата ещё не получена. Нажмите «Оплатить картой» и завершите платёж.",
+                "en": "⏳ Payment not received yet. Click «Pay with Card» and complete the payment.",
+                "fr": "⏳ Paiement non reçu. Cliquez «Payer par carte» et complétez le paiement."
+            }
+            await query.answer(unpaid_texts.get(lang, unpaid_texts["ru"]), show_alert=True)
+    
+    except Exception as e:
+        logger.error(f"MixPay check error: {e}")
+        await query.answer("❌ Ошибка проверки. Попробуйте позже.", show_alert=True)
+
+
 def register_subscription_handlers(application):
     """Регистрирует обработчики подписки."""
     application.add_handler(CommandHandler("subscribe", subscribe_command))
@@ -1036,4 +1228,5 @@ def register_subscription_handlers(application):
     application.add_handler(CallbackQueryHandler(subscription_callback, pattern=r"^subscribe:"))
     application.add_handler(CallbackQueryHandler(pay_usdt_callback, pattern=r"^pay:usdt:"))
     application.add_handler(CallbackQueryHandler(payment_callback, pattern=r"^payment:"))
+    application.add_handler(CallbackQueryHandler(mixpay_check_callback, pattern=r"^mixpay:check:"))
     application.add_handler(CallbackQueryHandler(cancel_callback, pattern=r"^cancel:"))
