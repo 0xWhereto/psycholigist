@@ -205,7 +205,10 @@ Que souhaitez-vous faire?
 async def cancel_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает выбор варианта отмены."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -311,7 +314,10 @@ Restaurer l'abonnement: /subscribe
 async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает выбор плана подписки — сразу показывает адрес для оплаты."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -497,7 +503,10 @@ async def _show_manual_payment(query, plan, price_usd, payment_id, lang):
 async def pay_usdt_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает нажатие кнопки оплаты USDT."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -808,7 +817,10 @@ Le paiement sera confirmé automatiquement (1-5 min).
 async def payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает подтверждение оплаты пользователем."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -997,7 +1009,10 @@ Vous avez maintenant un accès illimité.
 async def check_crypto_pay_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Проверяет оплату через Crypto Pay."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -1138,7 +1153,10 @@ async def mixpay_check_callback(update: Update, context: ContextTypes.DEFAULT_TY
         status = result["status"]
         
         if status == "success":
-            await query.answer()
+            try:
+                await query.answer()
+            except Exception:
+                pass
             
             # Активируем подписку
             async with db.session() as session:

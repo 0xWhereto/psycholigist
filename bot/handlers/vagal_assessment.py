@@ -112,7 +112,10 @@ async def start_assessment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def explain_hrv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Объяснение HRV показателей"""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     explanation = """
 📚 *Краткий гид по показателям HRV*
@@ -155,7 +158,10 @@ Results → Time-Domain / Frequency-Domain
 async def start_hrv_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Начало ввода HRV данных"""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     # Инициализируем хранилище данных
     context.user_data['hrv_data'] = {
@@ -367,7 +373,10 @@ async def collect_recovery_time(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def collect_behavioral_eye(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     value = int(query.data.split('_')[1])
     context.user_data['behavioral'] = {'eye_contact': value}
@@ -386,7 +395,10 @@ async def collect_behavioral_eye(update: Update, context: ContextTypes.DEFAULT_T
 
 async def collect_behavioral_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     value = int(query.data.split('_')[1])
     context.user_data['behavioral']['voice_prosody'] = value
@@ -405,7 +417,10 @@ async def collect_behavioral_voice(update: Update, context: ContextTypes.DEFAULT
 
 async def collect_behavioral_face(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     value = int(query.data.split('_')[1])
     context.user_data['behavioral']['facial_expressivity'] = value
@@ -424,7 +439,10 @@ async def collect_behavioral_face(update: Update, context: ContextTypes.DEFAULT_
 
 async def collect_behavioral_social(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     value = int(query.data.split('_')[1])
     context.user_data['behavioral']['social_engagement'] = value
@@ -443,7 +461,10 @@ async def collect_behavioral_social(update: Update, context: ContextTypes.DEFAUL
 
 async def collect_behavioral_relax(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     value = int(query.data.split('_')[1])
     context.user_data['behavioral']['body_relaxation'] = value
@@ -462,7 +483,10 @@ async def collect_behavioral_relax(update: Update, context: ContextTypes.DEFAULT
 
 async def collect_behavioral_dissoc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     context.user_data['behavioral']['reports_dissociation'] = query.data == "dissoc_yes"
     context.user_data['behavioral']['reports_numbness'] = query.data == "dissoc_yes"

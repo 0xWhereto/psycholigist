@@ -143,7 +143,10 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает нажатия кнопок главного меню."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     data = query.data
@@ -356,7 +359,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает выбор языка (lang:ru / lang:en / lang:fr)."""
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     user = update.effective_user
     lang_code = query.data.split(":")[1]  # ru / en / fr

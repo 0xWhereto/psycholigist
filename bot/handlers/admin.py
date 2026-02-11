@@ -83,7 +83,10 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("⛔ Недостаточно прав", show_alert=True)
         return
     
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     
     data = query.data
     if not data.startswith("admin:"):
