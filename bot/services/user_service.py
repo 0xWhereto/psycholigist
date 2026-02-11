@@ -58,6 +58,18 @@ class UserService:
         return result.scalar_one_or_none()
     
     @staticmethod
+    async def update_language(session: AsyncSession, user_id: int, lang_code: str) -> User | None:
+        """Обновляет язык пользователя."""
+        result = await session.execute(
+            select(User).where(User.user_id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            user.language_code = lang_code
+            logger.info(f"Updated language for user {user_id}: {lang_code}")
+        return user
+    
+    @staticmethod
     async def increment_free_messages(session: AsyncSession, user: User) -> int:
         """
         Увеличивает счётчик бесплатных сообщений.

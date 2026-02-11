@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Виктория — Психоаналитик</title>
+    <title data-i18n="page_title">Виктория — Психоаналитик</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
@@ -112,6 +112,12 @@
             letter-spacing: 0.02em;
         }
 
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
         .nav-links {
             display: flex;
             gap: 32px;
@@ -142,6 +148,40 @@
 
         .nav-links a:hover { color: var(--terracotta); }
         .nav-links a:hover::after { width: 100%; }
+
+        /* ─── Language Switcher ────────────────────────── */
+        .lang-switcher {
+            display: flex;
+            gap: 4px;
+            background: var(--warm);
+            border-radius: 20px;
+            padding: 3px;
+        }
+
+        .lang-switcher button {
+            background: transparent;
+            border: none;
+            padding: 5px 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .lang-switcher button:hover {
+            color: var(--deep);
+        }
+
+        .lang-switcher button.active {
+            background: var(--white);
+            color: var(--terracotta);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
 
         /* ─── Hero ──────────────────────────────────────── */
         .hero {
@@ -645,27 +685,34 @@
     <!-- Nav -->
     <nav id="nav">
         <div class="nav-logo">Viktoria</div>
-        <ul class="nav-links">
-            <li><a href="#about">Обо мне</a></li>
-            <li><a href="#services">Услуги</a></li>
-            <li><a href="#contact">Контакт</a></li>
-        </ul>
+        <div class="nav-right">
+            <ul class="nav-links">
+                <li><a href="#about" data-i18n="nav_about">Обо мне</a></li>
+                <li><a href="#services" data-i18n="nav_services">Услуги</a></li>
+                <li><a href="#contact" data-i18n="nav_contact">Контакт</a></li>
+            </ul>
+            <div class="lang-switcher">
+                <button onclick="setLanguage('ru')" id="lang-btn-ru" class="active">RU</button>
+                <button onclick="setLanguage('en')" id="lang-btn-en">EN</button>
+                <button onclick="setLanguage('fr')" id="lang-btn-fr">FR</button>
+            </div>
+        </div>
     </nav>
 
     <!-- Hero -->
     <section class="hero">
         <div class="hero-content">
             <div class="hero-text">
-                <div class="hero-subtitle">Психоаналитик &middot; Более 10 лет опыта</div>
-                <h1>Пространство для <em>вашей</em> истории</h1>
-                <p>Психоаналитическая практика, основанная на глубинном понимании личности. Индивидуальный подход, бережное сопровождение и профессиональная поддержка на пути к себе.</p>
+                <div class="hero-subtitle" data-i18n="hero_subtitle">Психоаналитик &middot; Более 10 лет опыта</div>
+                <h1 data-i18n-html="hero_title">Пространство для <em>вашей</em> истории</h1>
+                <p data-i18n="hero_desc">Психоаналитическая практика, основанная на глубинном понимании личности. Индивидуальный подход, бережное сопровождение и профессиональная поддержка на пути к себе.</p>
                 <div class="hero-buttons">
-                    <button class="btn btn-primary" onclick="openModal('consult')">Записаться на консультацию</button>
-                    <button class="btn btn-outline" onclick="openModal('ai')">Общение 24/7</button>
+                    <button class="btn btn-primary" onclick="openModal('consult')" data-i18n="hero_btn_consult">Записаться на консультацию</button>
+                    <button class="btn btn-outline" onclick="openModal('ai')" data-i18n="hero_btn_ai">Общение 24/7</button>
                 </div>
             </div>
             <div class="hero-photo">
-                <img src="img/photo.png" alt="Виктория — психоаналитик">
+                <img src="img/photo.png" data-i18n-alt="hero_photo_alt" alt="Виктория — психоаналитик">
             </div>
         </div>
     </section>
@@ -673,25 +720,25 @@
     <!-- About -->
     <section id="about">
         <div class="reveal">
-            <div class="section-label">Обо мне</div>
-            <h2 class="section-title">Виктория</h2>
-            <p class="section-desc">Практикующий психоаналитик с более чем 10-летним клиническим опытом. Лектор в университете психоанализа. Работаю в интегративном психоаналитическом подходе, объединяя классические и современные методы.</p>
+            <div class="section-label" data-i18n="about_label">Обо мне</div>
+            <h2 class="section-title" data-i18n="about_title">Виктория</h2>
+            <p class="section-desc" data-i18n="about_desc">Практикующий психоаналитик с более чем 10-летним клиническим опытом. Лектор в университете психоанализа. Работаю в интегративном психоаналитическом подходе, объединяя классические и современные методы.</p>
         </div>
         <div class="about-grid">
             <div class="about-card reveal">
                 <div class="about-icon">🎓</div>
-                <h3>Академический опыт</h3>
-                <p>Лектор в университете психоанализа. Преподаю и продолжаю исследовательскую работу в области интеграции вагусной теории и теории привязанности.</p>
+                <h3 data-i18n="about_card1_title">Академический опыт</h3>
+                <p data-i18n="about_card1_desc">Лектор в университете психоанализа. Преподаю и продолжаю исследовательскую работу в области интеграции вагусной теории и теории привязанности.</p>
             </div>
             <div class="about-card reveal">
                 <div class="about-icon">💠</div>
-                <h3>10+ лет практики</h3>
-                <p>Более десяти лет клинической работы с индивидуальными клиентами. Глубинная работа с бессознательным, травмой, отношениями и личностным развитием.</p>
+                <h3 data-i18n="about_card2_title">10+ лет практики</h3>
+                <p data-i18n="about_card2_desc">Более десяти лет клинической работы с индивидуальными клиентами. Глубинная работа с бессознательным, травмой, отношениями и личностным развитием.</p>
             </div>
             <div class="about-card reveal">
                 <div class="about-icon">🤝</div>
-                <h3>Интегративный подход</h3>
-                <p>Объединяю психоаналитическую традицию (Фрейд, Лакан, Винникотт, Юнг) с поливагальной теорией и теорией привязанности Боулби.</p>
+                <h3 data-i18n="about_card3_title">Интегративный подход</h3>
+                <p data-i18n="about_card3_desc">Объединяю психоаналитическую традицию (Фрейд, Лакан, Винникотт, Юнг) с поливагальной теорией и теорией привязанности Боулби.</p>
             </div>
         </div>
     </section>
@@ -702,51 +749,51 @@
     <div class="services-bg" id="services">
         <div class="services-inner">
             <div class="reveal">
-                <div class="section-label">Направления работы</div>
-                <h2 class="section-title">С чем я работаю</h2>
-                <p class="section-desc">Каждый человек приходит со своей уникальной историей. Вот основные направления, в которых я могу помочь.</p>
+                <div class="section-label" data-i18n="services_label">Направления работы</div>
+                <h2 class="section-title" data-i18n="services_title">С чем я работаю</h2>
+                <p class="section-desc" data-i18n="services_desc">Каждый человек приходит со своей уникальной историей. Вот основные направления, в которых я могу помочь.</p>
             </div>
             <div class="services-list">
                 <div class="service-item reveal">
                     <div class="service-num">01</div>
                     <div>
-                        <h3>Тревога и депрессия</h3>
-                        <p>Работа с хронической тревогой, паническими атаками, депрессивными состояниями и потерей смысла.</p>
+                        <h3 data-i18n="svc1_title">Тревога и депрессия</h3>
+                        <p data-i18n="svc1_desc">Работа с хронической тревогой, паническими атаками, депрессивными состояниями и потерей смысла.</p>
                     </div>
                 </div>
                 <div class="service-item reveal">
                     <div class="service-num">02</div>
                     <div>
-                        <h3>Отношения и привязанность</h3>
-                        <p>Трудности в отношениях, повторяющиеся паттерны, страх близости, зависимость и созависимость.</p>
+                        <h3 data-i18n="svc2_title">Отношения и привязанность</h3>
+                        <p data-i18n="svc2_desc">Трудности в отношениях, повторяющиеся паттерны, страх близости, зависимость и созависимость.</p>
                     </div>
                 </div>
                 <div class="service-item reveal">
                     <div class="service-num">03</div>
                     <div>
-                        <h3>Травма и потеря</h3>
-                        <p>Психологическая травма, горевание, ПТСР, ранний травматический опыт и его влияние на настоящее.</p>
+                        <h3 data-i18n="svc3_title">Травма и потеря</h3>
+                        <p data-i18n="svc3_desc">Психологическая травма, горевание, ПТСР, ранний травматический опыт и его влияние на настоящее.</p>
                     </div>
                 </div>
                 <div class="service-item reveal">
                     <div class="service-num">04</div>
                     <div>
-                        <h3>Самопознание и развитие</h3>
-                        <p>Поиск идентичности, жизненные кризисы, процесс индивидуации, раскрытие внутреннего потенциала.</p>
+                        <h3 data-i18n="svc4_title">Самопознание и развитие</h3>
+                        <p data-i18n="svc4_desc">Поиск идентичности, жизненные кризисы, процесс индивидуации, раскрытие внутреннего потенциала.</p>
                     </div>
                 </div>
                 <div class="service-item reveal">
                     <div class="service-num">05</div>
                     <div>
-                        <h3>Психосоматика</h3>
-                        <p>Связь тела и психики, хронические боли, алекситимия, регуляция нервной системы.</p>
+                        <h3 data-i18n="svc5_title">Психосоматика</h3>
+                        <p data-i18n="svc5_desc">Связь тела и психики, хронические боли, алекситимия, регуляция нервной системы.</p>
                     </div>
                 </div>
                 <div class="service-item reveal">
                     <div class="service-num">06</div>
                     <div>
-                        <h3>Работа со снами</h3>
-                        <p>Аналитическая интерпретация сновидений как путь к пониманию бессознательного.</p>
+                        <h3 data-i18n="svc6_title">Работа со снами</h3>
+                        <p data-i18n="svc6_desc">Аналитическая интерпретация сновидений как путь к пониманию бессознательного.</p>
                     </div>
                 </div>
             </div>
@@ -756,8 +803,8 @@
     <!-- Quote -->
     <section class="quote-section reveal">
         <div class="quote-mark">&ldquo;</div>
-        <p class="quote-text">Самое важное путешествие — это путешествие внутрь себя. И для этого пути не нужно быть одному.</p>
-        <span class="quote-author">— Виктория</span>
+        <p class="quote-text" data-i18n="quote_text">Самое важное путешествие — это путешествие внутрь себя. И для этого пути не нужно быть одному.</p>
+        <span class="quote-author" data-i18n="quote_author">— Виктория</span>
     </section>
 
     <div class="divider-section"><div class="divider"></div></div>
@@ -765,19 +812,19 @@
     <!-- CTA -->
     <section class="cta-section" id="contact">
         <div class="reveal">
-            <div class="section-label">Начните сейчас</div>
-            <h2 class="section-title">Готовы сделать первый шаг?</h2>
-            <p class="section-desc">Выберите удобный для вас формат общения. Я доступна для личных консультаций, а мой AI-ассистент — круглосуточно.</p>
+            <div class="section-label" data-i18n="cta_label">Начните сейчас</div>
+            <h2 class="section-title" data-i18n="cta_title">Готовы сделать первый шаг?</h2>
+            <p class="section-desc" data-i18n="cta_desc">Выберите удобный для вас формат общения. Я доступна для личных консультаций, а мой AI-ассистент — круглосуточно.</p>
         </div>
         <div class="cta-buttons reveal">
-            <button class="btn btn-primary" onclick="openModal('consult')">📅 Записаться на консультацию</button>
-            <button class="btn btn-outline" onclick="openModal('ai')">🤖 AI-ассистент 24/7</button>
+            <button class="btn btn-primary" onclick="openModal('consult')" data-i18n="cta_btn_consult">📅 Записаться на консультацию</button>
+            <button class="btn btn-outline" onclick="openModal('ai')" data-i18n="cta_btn_ai">🤖 AI-ассистент 24/7</button>
         </div>
     </section>
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2026 Виктория — Психоаналитик. Все права защищены.</p>
+        <p data-i18n="footer">&copy; 2026 Виктория — Психоаналитик. Все права защищены.</p>
     </footer>
 
     <!-- Modal: Consultation -->
@@ -785,9 +832,9 @@
         <div class="modal">
             <button class="modal-close" onclick="closeModal('consult')">&times;</button>
             <div class="modal-icon">💬</div>
-            <h2>Записаться на консультацию</h2>
-            <p>Напишите мне в Telegram — я отвечу и мы подберём удобное время для первой встречи.</p>
-            <a href="https://t.me/viktoria_m23" target="_blank" class="btn btn-primary">Написать в Telegram</a>
+            <h2 data-i18n="modal_consult_title">Записаться на консультацию</h2>
+            <p data-i18n="modal_consult_desc">Напишите мне в Telegram — я отвечу и мы подберём удобное время для первой встречи.</p>
+            <a href="https://t.me/viktoria_m23" target="_blank" class="btn btn-primary" data-i18n="modal_consult_btn">Написать в Telegram</a>
         </div>
     </div>
 
@@ -796,13 +843,228 @@
         <div class="modal">
             <button class="modal-close" onclick="closeModal('ai')">&times;</button>
             <div class="modal-icon">🤖</div>
-            <h2>Общение 24/7</h2>
-            <p>Вы можете в любое время пообщаться с моей AI-копией — Искусственным Интеллектом, обученным на моём клиническом опыте, в Telegram-боте.</p>
-            <a href="https://t.me/psycholog_helpbot" target="_blank" class="btn btn-primary">Попробовать</a>
+            <h2 data-i18n="modal_ai_title">Общение 24/7</h2>
+            <p data-i18n="modal_ai_desc">Вы можете в любое время пообщаться с моей AI-копией — Искусственным Интеллектом, обученным на моём клиническом опыте, в Telegram-боте.</p>
+            <a href="https://t.me/psycholog_helpbot" target="_blank" class="btn btn-primary" data-i18n="modal_ai_btn">Попробовать</a>
         </div>
     </div>
 
     <script>
+        // ─── Translations ───────────────────────────
+        const translations = {
+            ru: {
+                page_title: "Виктория — Психоаналитик",
+                nav_about: "Обо мне",
+                nav_services: "Услуги",
+                nav_contact: "Контакт",
+                hero_subtitle: "Психоаналитик \u00b7 Более 10 лет опыта",
+                hero_title: 'Пространство для <em>вашей</em> истории',
+                hero_desc: "Психоаналитическая практика, основанная на глубинном понимании личности. Индивидуальный подход, бережное сопровождение и профессиональная поддержка на пути к себе.",
+                hero_btn_consult: "Записаться на консультацию",
+                hero_btn_ai: "Общение 24/7",
+                hero_photo_alt: "Виктория — психоаналитик",
+                about_label: "Обо мне",
+                about_title: "Виктория",
+                about_desc: "Практикующий психоаналитик с более чем 10-летним клиническим опытом. Лектор в университете психоанализа. Работаю в интегративном психоаналитическом подходе, объединяя классические и современные методы.",
+                about_card1_title: "Академический опыт",
+                about_card1_desc: "Лектор в университете психоанализа. Преподаю и продолжаю исследовательскую работу в области интеграции вагусной теории и теории привязанности.",
+                about_card2_title: "10+ лет практики",
+                about_card2_desc: "Более десяти лет клинической работы с индивидуальными клиентами. Глубинная работа с бессознательным, травмой, отношениями и личностным развитием.",
+                about_card3_title: "Интегративный подход",
+                about_card3_desc: "Объединяю психоаналитическую традицию (Фрейд, Лакан, Винникотт, Юнг) с поливагальной теорией и теорией привязанности Боулби.",
+                services_label: "Направления работы",
+                services_title: "С чем я работаю",
+                services_desc: "Каждый человек приходит со своей уникальной историей. Вот основные направления, в которых я могу помочь.",
+                svc1_title: "Тревога и депрессия",
+                svc1_desc: "Работа с хронической тревогой, паническими атаками, депрессивными состояниями и потерей смысла.",
+                svc2_title: "Отношения и привязанность",
+                svc2_desc: "Трудности в отношениях, повторяющиеся паттерны, страх близости, зависимость и созависимость.",
+                svc3_title: "Травма и потеря",
+                svc3_desc: "Психологическая травма, горевание, ПТСР, ранний травматический опыт и его влияние на настоящее.",
+                svc4_title: "Самопознание и развитие",
+                svc4_desc: "Поиск идентичности, жизненные кризисы, процесс индивидуации, раскрытие внутреннего потенциала.",
+                svc5_title: "Психосоматика",
+                svc5_desc: "Связь тела и психики, хронические боли, алекситимия, регуляция нервной системы.",
+                svc6_title: "Работа со снами",
+                svc6_desc: "Аналитическая интерпретация сновидений как путь к пониманию бессознательного.",
+                quote_text: "Самое важное путешествие — это путешествие внутрь себя. И для этого пути не нужно быть одному.",
+                quote_author: "— Виктория",
+                cta_label: "Начните сейчас",
+                cta_title: "Готовы сделать первый шаг?",
+                cta_desc: "Выберите удобный для вас формат общения. Я доступна для личных консультаций, а мой AI-ассистент — круглосуточно.",
+                cta_btn_consult: "📅 Записаться на консультацию",
+                cta_btn_ai: "🤖 AI-ассистент 24/7",
+                footer: "\u00a9 2026 Виктория — Психоаналитик. Все права защищены.",
+                modal_consult_title: "Записаться на консультацию",
+                modal_consult_desc: "Напишите мне в Telegram — я отвечу и мы подберём удобное время для первой встречи.",
+                modal_consult_btn: "Написать в Telegram",
+                modal_ai_title: "Общение 24/7",
+                modal_ai_desc: "Вы можете в любое время пообщаться с моей AI-копией — Искусственным Интеллектом, обученным на моём клиническом опыте, в Telegram-боте.",
+                modal_ai_btn: "Попробовать",
+            },
+            en: {
+                page_title: "Viktoria — Psychoanalyst",
+                nav_about: "About",
+                nav_services: "Services",
+                nav_contact: "Contact",
+                hero_subtitle: "Psychoanalyst \u00b7 Over 10 years of experience",
+                hero_title: 'A space for <em>your</em> story',
+                hero_desc: "A psychoanalytic practice rooted in a deep understanding of personality. An individual approach, gentle guidance, and professional support on the path to self-discovery.",
+                hero_btn_consult: "Book a consultation",
+                hero_btn_ai: "Chat 24/7",
+                hero_photo_alt: "Viktoria — Psychoanalyst",
+                about_label: "About me",
+                about_title: "Viktoria",
+                about_desc: "A practicing psychoanalyst with over 10 years of clinical experience. Lecturer at a university of psychoanalysis. I work within an integrative psychoanalytic approach, combining classical and modern methods.",
+                about_card1_title: "Academic experience",
+                about_card1_desc: "Lecturer at a university of psychoanalysis. I teach and continue research in the integration of polyvagal theory and attachment theory.",
+                about_card2_title: "10+ years of practice",
+                about_card2_desc: "Over ten years of clinical work with individual clients. Deep work with the unconscious, trauma, relationships, and personal development.",
+                about_card3_title: "Integrative approach",
+                about_card3_desc: "I combine the psychoanalytic tradition (Freud, Lacan, Winnicott, Jung) with polyvagal theory and Bowlby's attachment theory.",
+                services_label: "Areas of work",
+                services_title: "What I work with",
+                services_desc: "Every person comes with their own unique story. Here are the main areas where I can help.",
+                svc1_title: "Anxiety & depression",
+                svc1_desc: "Working with chronic anxiety, panic attacks, depressive states, and loss of meaning.",
+                svc2_title: "Relationships & attachment",
+                svc2_desc: "Difficulties in relationships, repeating patterns, fear of intimacy, dependency and codependency.",
+                svc3_title: "Trauma & loss",
+                svc3_desc: "Psychological trauma, grief, PTSD, early traumatic experience and its impact on the present.",
+                svc4_title: "Self-discovery & growth",
+                svc4_desc: "Search for identity, life crises, individuation, unlocking inner potential.",
+                svc5_title: "Psychosomatics",
+                svc5_desc: "Mind-body connection, chronic pain, alexithymia, nervous system regulation.",
+                svc6_title: "Dream work",
+                svc6_desc: "Analytical interpretation of dreams as a path to understanding the unconscious.",
+                quote_text: "The most important journey is the journey within. And you don\u2019t have to walk that path alone.",
+                quote_author: "— Viktoria",
+                cta_label: "Start now",
+                cta_title: "Ready to take the first step?",
+                cta_desc: "Choose a format that suits you. I am available for personal consultations, and my AI assistant is available around the clock.",
+                cta_btn_consult: "📅 Book a consultation",
+                cta_btn_ai: "🤖 AI assistant 24/7",
+                footer: "\u00a9 2026 Viktoria — Psychoanalyst. All rights reserved.",
+                modal_consult_title: "Book a consultation",
+                modal_consult_desc: "Write to me on Telegram — I will reply and we will find a convenient time for the first session.",
+                modal_consult_btn: "Write on Telegram",
+                modal_ai_title: "Chat 24/7",
+                modal_ai_desc: "You can chat at any time with my AI copy — an Artificial Intelligence trained on my clinical experience — in a Telegram bot.",
+                modal_ai_btn: "Try it",
+            },
+            fr: {
+                page_title: "Viktoria — Psychanalyste",
+                nav_about: "\u00c0 propos",
+                nav_services: "Services",
+                nav_contact: "Contact",
+                hero_subtitle: "Psychanalyste \u00b7 Plus de 10 ans d\u2019exp\u00e9rience",
+                hero_title: 'Un espace pour <em>votre</em> histoire',
+                hero_desc: "Une pratique psychanalytique fond\u00e9e sur une compr\u00e9hension profonde de la personnalit\u00e9. Une approche individuelle, un accompagnement bienveillant et un soutien professionnel sur le chemin de soi.",
+                hero_btn_consult: "Prendre rendez-vous",
+                hero_btn_ai: "Discussion 24/7",
+                hero_photo_alt: "Viktoria — Psychanalyste",
+                about_label: "\u00c0 propos",
+                about_title: "Viktoria",
+                about_desc: "Psychanalyste praticienne avec plus de 10 ans d\u2019exp\u00e9rience clinique. Enseignante \u00e0 l\u2019universit\u00e9 de psychanalyse. Je travaille dans une approche psychanalytique int\u00e9grative, alliant m\u00e9thodes classiques et modernes.",
+                about_card1_title: "Exp\u00e9rience acad\u00e9mique",
+                about_card1_desc: "Enseignante \u00e0 l\u2019universit\u00e9 de psychanalyse. J\u2019enseigne et poursuis mes recherches sur l\u2019int\u00e9gration de la th\u00e9orie polyvagale et de la th\u00e9orie de l\u2019attachement.",
+                about_card2_title: "10+ ans de pratique",
+                about_card2_desc: "Plus de dix ans de travail clinique avec des clients individuels. Travail en profondeur avec l\u2019inconscient, les traumatismes, les relations et le d\u00e9veloppement personnel.",
+                about_card3_title: "Approche int\u00e9grative",
+                about_card3_desc: "Je combine la tradition psychanalytique (Freud, Lacan, Winnicott, Jung) avec la th\u00e9orie polyvagale et la th\u00e9orie de l\u2019attachement de Bowlby.",
+                services_label: "Domaines de travail",
+                services_title: "Ce que je traite",
+                services_desc: "Chaque personne arrive avec sa propre histoire unique. Voici les principaux domaines dans lesquels je peux vous aider.",
+                svc1_title: "Anxi\u00e9t\u00e9 et d\u00e9pression",
+                svc1_desc: "Travail avec l\u2019anxi\u00e9t\u00e9 chronique, les crises de panique, les \u00e9tats d\u00e9pressifs et la perte de sens.",
+                svc2_title: "Relations et attachement",
+                svc2_desc: "Difficult\u00e9s relationnelles, sch\u00e9mas r\u00e9p\u00e9titifs, peur de l\u2019intimit\u00e9, d\u00e9pendance et cod\u00e9pendance.",
+                svc3_title: "Traumatisme et deuil",
+                svc3_desc: "Traumatisme psychologique, deuil, TSPT, exp\u00e9rience traumatique pr\u00e9coce et son impact sur le pr\u00e9sent.",
+                svc4_title: "Connaissance de soi et d\u00e9veloppement",
+                svc4_desc: "Recherche d\u2019identit\u00e9, crises de vie, processus d\u2019individuation, r\u00e9v\u00e9lation du potentiel int\u00e9rieur.",
+                svc5_title: "Psychosomatique",
+                svc5_desc: "Lien corps-psych\u00e9, douleurs chroniques, alexithymie, r\u00e9gulation du syst\u00e8me nerveux.",
+                svc6_title: "Travail avec les r\u00eaves",
+                svc6_desc: "Interpr\u00e9tation analytique des r\u00eaves comme voie vers la compr\u00e9hension de l\u2019inconscient.",
+                quote_text: "Le voyage le plus important est le voyage int\u00e9rieur. Et pour ce chemin, on n\u2019a pas besoin d\u2019\u00eatre seul.",
+                quote_author: "— Viktoria",
+                cta_label: "Commencez maintenant",
+                cta_title: "Pr\u00eat(e) \u00e0 faire le premier pas ?",
+                cta_desc: "Choisissez le format qui vous convient. Je suis disponible pour des consultations personnelles, et mon assistant IA est disponible 24h/24.",
+                cta_btn_consult: "📅 Prendre rendez-vous",
+                cta_btn_ai: "🤖 Assistant IA 24/7",
+                footer: "\u00a9 2026 Viktoria — Psychanalyste. Tous droits r\u00e9serv\u00e9s.",
+                modal_consult_title: "Prendre rendez-vous",
+                modal_consult_desc: "\u00c9crivez-moi sur Telegram — je r\u00e9pondrai et nous trouverons un cr\u00e9neau pour la premi\u00e8re s\u00e9ance.",
+                modal_consult_btn: "\u00c9crire sur Telegram",
+                modal_ai_title: "Discussion 24/7",
+                modal_ai_desc: "Vous pouvez \u00e0 tout moment discuter avec ma copie IA — une Intelligence Artificielle form\u00e9e sur mon exp\u00e9rience clinique — dans un bot Telegram.",
+                modal_ai_btn: "Essayer",
+            }
+        };
+
+        let currentLang = 'ru';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            if (!t) return;
+
+            // Update text content
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key] !== undefined) {
+                    el.textContent = t[key];
+                }
+            });
+
+            // Update innerHTML for elements with rich text (em tags, etc.)
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const key = el.getAttribute('data-i18n-html');
+                if (t[key] !== undefined) {
+                    el.innerHTML = t[key];
+                }
+            });
+
+            // Update alt attributes
+            document.querySelectorAll('[data-i18n-alt]').forEach(el => {
+                const key = el.getAttribute('data-i18n-alt');
+                if (t[key] !== undefined) {
+                    el.alt = t[key];
+                }
+            });
+
+            // Update page title
+            if (t.page_title) {
+                document.title = t.page_title;
+            }
+
+            // Update html lang attribute
+            document.documentElement.lang = lang;
+
+            // Update active state on language switcher buttons
+            document.querySelectorAll('.lang-switcher button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.getElementById('lang-btn-' + lang);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // Save preference
+            localStorage.setItem('lang', lang);
+        }
+
+        // ─── Init language ──────────────────────────
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const urlLang = params.get('lang');
+            const savedLang = localStorage.getItem('lang');
+            const lang = urlLang || savedLang || 'ru';
+            if (lang !== 'ru') {
+                setLanguage(lang);
+            }
+        })();
+
         // ─── Scroll reveal ──────────────────────────
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry, i) => {

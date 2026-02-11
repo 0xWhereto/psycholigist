@@ -6,6 +6,17 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from bot.services.subscription_service import SUBSCRIPTION_PLANS
 
 
+def get_language_keyboard() -> InlineKeyboardMarkup:
+    """Возвращает клавиатуру выбора языка."""
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🇷🇺 Русский", callback_data="lang:ru"),
+            InlineKeyboardButton("🇬🇧 English", callback_data="lang:en"),
+            InlineKeyboardButton("🇫🇷 Français", callback_data="lang:fr"),
+        ]
+    ])
+
+
 def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
     """Возвращает главное меню с кнопками."""
     if lang == "ru":
@@ -18,6 +29,7 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
                 InlineKeyboardButton("💎 Подписка", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 Мой статус", callback_data="menu:status"),
             ],
+            [InlineKeyboardButton("🌐 Язык / Language", callback_data="menu:language")],
         ]
     elif lang == "en":
         buttons = [
@@ -29,6 +41,7 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
                 InlineKeyboardButton("💎 Subscribe", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 My status", callback_data="menu:status"),
             ],
+            [InlineKeyboardButton("🌐 Language", callback_data="menu:language")],
         ]
     else:  # fr
         buttons = [
@@ -40,6 +53,7 @@ def get_main_menu_keyboard(lang: str = "ru") -> InlineKeyboardMarkup:
                 InlineKeyboardButton("💎 S'abonner", callback_data="menu:subscribe"),
                 InlineKeyboardButton("📊 Mon statut", callback_data="menu:status"),
             ],
+            [InlineKeyboardButton("🌐 Langue", callback_data="menu:language")],
         ]
     
     return InlineKeyboardMarkup(buttons)

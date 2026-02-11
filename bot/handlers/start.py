@@ -13,7 +13,7 @@ from bot.services.subscription_service import SubscriptionService, SUBSCRIPTION_
 from bot.services.ai_service import get_ai_service
 from bot.services.summary_service import SummaryService
 from bot.utils.texts import get_text
-from bot.utils.keyboards import get_main_menu_keyboard, get_back_to_menu_keyboard, get_subscription_keyboard
+from bot.utils.keyboards import get_main_menu_keyboard, get_back_to_menu_keyboard, get_subscription_keyboard, get_language_keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +26,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = get_db()
     
     async with db.session() as session:
+        existing_user = await UserService.get_user(session, user.id)
+    
+    if existing_user is None:
+        # New user — ask for language first
+        choose_lang_text = (
+            "🌐 Выберите язык / Choose your language / Choisissez votre langue:"
+        )
+        await update.message.reply_text(
+            choose_lang_text,
+            reply_markup=get_language_keyboard(),
+        )
+        return
+    
+    # Existing user — show welcome as usual
+    async with db.session() as session:
         db_user = await UserService.get_or_create_user(
             session,
             user_id=user.id,
             username=user.username,
             first_name=user.first_name,
-            language_code=user.language_code or "ru"
+            language_code=existing_user.language_code
         )
         lang = db_user.language_code
     
@@ -317,6 +332,16 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode="Markdown"
                 )
     
+    elif action == "language":
+        # Show language picker
+        choose_lang_text = (
+            "🌐 Выберите язык / Choose your language / Choisissez votre langue:"
+        )
+        await query.edit_message_text(
+            choose_lang_text,
+            reply_markup=get_language_keyboard(),
+        )
+
     elif action == "help":
         # Помощь и кризисные ресурсы
         await query.edit_message_text(
@@ -324,6 +349,44 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_back_to_menu_keyboard(lang),
             parse_mode="Markdown"
         )
+
+
+# ─── Language Callback ───────────────────────────────────────────────────────
+
+async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает выбор языка (lang:ru / lang:en / lang:fr)."""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    lang_code = query.data.split(":")[1]  # ru / en / fr
+    
+    db = get_db()
+    
+    async with db.session() as session:
+        existing_user = await UserService.get_user(session, user.id)
+        
+        if existing_user is None:
+            # First time — create user with chosen language
+            db_user = await UserService.get_or_create_user(
+                session,
+                user_id=user.id,
+                username=user.username,
+                first_name=user.first_name,
+                language_code=lang_code,
+            )
+        else:
+            # Existing user — update language
+            db_user = await UserService.update_language(session, user.id, lang_code)
+    
+    lang = lang_code
+    name = f", {user.first_name}" if user.first_name else ""
+    
+    await query.edit_message_text(
+        get_text("welcome", lang, name=name),
+        reply_markup=get_main_menu_keyboard(lang),
+        parse_mode="Markdown",
+    )
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -391,4 +454,5 @@ def register_start_handlers(application):
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("aide", help_command))
     application.add_handler(CommandHandler("reset", reset_command))
+    application.add_handler(CallbackQueryHandler(language_callback, pattern=r"^lang:"))
     application.add_handler(CallbackQueryHandler(menu_callback, pattern=r"^menu:"))
