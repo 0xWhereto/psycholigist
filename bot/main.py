@@ -182,8 +182,38 @@ async def post_shutdown(application: Application):
 
 
 async def error_handler(update: Update, context):
-    """Глобальный обработчик ошибок."""
-    logger.error(f"Exception during update handling: {context.error}")
+    """Глобальный обработчик ошибок — логирует и уведомляет админа."""
+    logger.error(f"Exception during update handling: {context.error}", exc_info=context.error)
+    
+    # Try to notify admin about the error
+    try:
+        admin_id = os.getenv("ADMIN_USER_ID")
+        if admin_id:
+            error_text = (
+                f"🚨 Bot error:\n"
+                f"<code>{type(context.error).__name__}: {context.error}</code>"
+            )
+            if update and update.effective_user:
+                error_text += f"\n\nUser: {update.effective_user.id}"
+            if update and update.effective_message and update.effective_message.text:
+                msg_preview = update.effective_message.text[:100]
+                error_text += f"\nMessage: {msg_preview}"
+            await context.bot.send_message(
+                chat_id=int(admin_id),
+                text=error_text,
+                parse_mode="HTML",
+            )
+    except Exception:
+        pass  # Don't let error reporting cause more errors
+    
+    # Try to respond to the user
+    try:
+        if update and update.effective_message:
+            await update.effective_message.reply_text(
+                "Извини, произошла ошибка. Попробуй ещё раз."
+            )
+    except Exception:
+        pass
 
 
 def main():
