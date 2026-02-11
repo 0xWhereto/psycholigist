@@ -74,103 +74,99 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_message = update.message.text
     
-    db = get_db()
-    free_limit = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "10"))
-    grace_days = int(os.getenv("GRACE_PERIOD_DAYS", "3"))
+    from bot.handlers.admin import is_admin
     
-    async with db.session() as session:
-        # Get or create user
-        db_user = await UserService.get_or_create_user(
-            session,
-            user_id=user.id,
-            username=user.username,
-            first_name=user.first_name,
-            language_code=user.language_code or "ru"
-        )
-        lang = db_user.language_code
+    try:
+        db = get_db()
+        free_limit = int(os.getenv("FREE_TIER_DAILY_MESSAGES", "10"))
+        grace_days = int(os.getenv("GRACE_PERIOD_DAYS", "3"))
         
-        # Check subscription
-        has_subscription = await SubscriptionService.has_active_subscription(session, user.id)
-        in_grace = await SubscriptionService.is_in_grace_period(session, user.id, grace_days)
-        
-        # Админ — безлимит без подписки
-        from bot.handlers.admin import is_admin
-        
-        # Check free message limit
-        if not has_subscription and not in_grace and not is_admin(user.id):
-            remaining = await UserService.get_free_messages_remaining(session, db_user, free_limit)
+        async with db.session() as session:
+            # Get or create user
+            db_user = await UserService.get_or_create_user(
+                session,
+                user_id=user.id,
+                username=user.username,
+                first_name=user.first_name,
+                language_code=user.language_code or "ru"
+            )
+            lang = db_user.language_code
             
-            if remaining <= 0:
+            # Check subscription
+            has_subscription = await SubscriptionService.has_active_subscription(session, user.id)
+            in_grace = await SubscriptionService.is_in_grace_period(session, user.id, grace_days)
+            
+            # Check free message limit (admin has unlimited)
+            if not has_subscription and not in_grace and not is_admin(user.id):
+                remaining = await UserService.get_free_messages_remaining(session, db_user, free_limit)
+                
+                if remaining <= 0:
+                    await update.message.reply_text(
+                        get_text("free_limit_reached", lang, limit=free_limit),
+                        parse_mode="Markdown"
+                    )
+                    return
+                
+                # Increment counter
+                await UserService.increment_free_messages(session, db_user)
+            
+            # Detect crisis
+            if detect_crisis(user_message):
+                logger.warning(f"Crisis detected for user {user.id}")
                 await update.message.reply_text(
-                    get_text("free_limit_reached", lang, limit=free_limit),
+                    CRISIS_RESPONSE.get(lang, CRISIS_RESPONSE["ru"]),
                     parse_mode="Markdown"
                 )
-                return
             
-            # Increment counter
-            await UserService.increment_free_messages(session, db_user)
-        
-        # Detect crisis
-        if detect_crisis(user_message):
-            logger.warning(f"Crisis detected for user {user.id}")
-            await update.message.reply_text(
-                CRISIS_RESPONSE.get(lang, CRISIS_RESPONSE["ru"]),
-                parse_mode="Markdown"
+            # Show typing indicator
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id,
+                action="typing"
             )
-        
-        # Show typing indicator
-        await context.bot.send_chat_action(
-            chat_id=update.effective_chat.id,
-            action="typing"
-        )
-        
-        # Save user message
-        await MessageService.add_message(session, user.id, "user", user_message)
-        
-        # Get conversation history
-        max_history = int(os.getenv("MAX_CONVERSATION_HISTORY", "20"))
-        history = await MessageService.get_conversation_history(session, user.id, max_history)
-        
-        # Загружаем долговременную память (саммари предыдущих сессий)
-        summary = await SummaryService.get_summary(session, user.id)
-        
-        # Если история переполнена — суммаризируем старые сообщения
-        total_messages = await MessageService.get_message_count(session, user.id)
-        if total_messages > max_history + 10:
-            try:
-                ai_service_for_summary = get_ai_service()
-                # Берём все сообщения которые не вошли в текущее окно
-                old_messages = await MessageService.get_old_messages(
-                    session, user.id, offset=max_history
-                )
-                if old_messages and len(old_messages) >= 4:
-                    await SummaryService.summarize_and_clear(
-                        session, ai_service_for_summary, user.id, old_messages
+            
+            # Save user message
+            await MessageService.add_message(session, user.id, "user", user_message)
+            
+            # Get conversation history
+            max_history = int(os.getenv("MAX_CONVERSATION_HISTORY", "20"))
+            history = await MessageService.get_conversation_history(session, user.id, max_history)
+            
+            # Загружаем долговременную память (саммари предыдущих сессий)
+            summary = await SummaryService.get_summary(session, user.id)
+            
+            # Если история переполнена — суммаризируем старые сообщения
+            total_messages = await MessageService.get_message_count(session, user.id)
+            if total_messages > max_history + 10:
+                try:
+                    ai_service_for_summary = get_ai_service()
+                    old_messages = await MessageService.get_old_messages(
+                        session, user.id, offset=max_history
                     )
-                    # Удаляем старые сообщения, оставляем только последние max_history
-                    await MessageService.trim_old_messages(session, user.id, keep=max_history)
-                    # Обновляем саммари
-                    summary = await SummaryService.get_summary(session, user.id)
-                    logger.info(f"Auto-summarized old messages for user {user.id}")
-            except Exception as e:
-                logger.error(f"Auto-summary failed for user {user.id}: {e}")
-        
-        # Формируем контекст с долговременной памятью
-        if summary:
-            memory_message = {
-                "role": "user",
-                "content": (
-                    f"[КОНТЕКСТ — долговременная память из предыдущих сессий, "
-                    f"не отвечай на это сообщение, просто учитывай эту информацию "
-                    f"о клиенте в своих ответах]\n\n{summary}"
-                )
-            }
-            history_with_memory = [memory_message] + history
-        else:
-            history_with_memory = history
-        
-        # Generate response
-        try:
+                    if old_messages and len(old_messages) >= 4:
+                        await SummaryService.summarize_and_clear(
+                            session, ai_service_for_summary, user.id, old_messages
+                        )
+                        await MessageService.trim_old_messages(session, user.id, keep=max_history)
+                        summary = await SummaryService.get_summary(session, user.id)
+                        logger.info(f"Auto-summarized old messages for user {user.id}")
+                except Exception as e:
+                    logger.error(f"Auto-summary failed for user {user.id}: {e}")
+            
+            # Формируем контекст с долговременной памятью
+            if summary:
+                memory_message = {
+                    "role": "user",
+                    "content": (
+                        f"[КОНТЕКСТ — долговременная память из предыдущих сессий, "
+                        f"не отвечай на это сообщение, просто учитывай эту информацию "
+                        f"о клиенте в своих ответах]\n\n{summary}"
+                    )
+                }
+                history_with_memory = [memory_message] + history
+            else:
+                history_with_memory = history
+            
+            # Generate response
             ai_service = get_ai_service()
             response = await ai_service.generate_response(history_with_memory)
             
@@ -179,16 +175,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Send response
             await update.message.reply_text(response)
-            
-        except Exception as e:
-            logger.error(f"AI generation error: {e}", exc_info=True)
-            error_msg = get_text("error_generic", lang)
-            
-            # Админу показываем детали ошибки
-            if is_admin(user.id):
-                error_msg += f"\n\n🔧 Debug: {type(e).__name__}: {e}"
-            
+    
+    except Exception as e:
+        logger.error(f"Message handler error for user {user.id}: {e}", exc_info=True)
+        error_msg = "Извини, произошла ошибка. Попробуй ещё раз через минуту."
+        
+        # Админу показываем детали ошибки
+        if is_admin(user.id):
+            error_msg += f"\n\n🔧 Debug: {type(e).__name__}: {e}"
+        
+        try:
             await update.message.reply_text(error_msg)
+        except Exception:
+            logger.error(f"Failed to send error message to user {user.id}")
 
 
 def register_chat_handlers(application):

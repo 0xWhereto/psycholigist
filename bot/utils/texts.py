@@ -37,7 +37,7 @@ Choisis une action ci-dessous ou écris-moi simplement un message 💙
         "ru": """
 📊 **Тарифы подписки**
 
-Бесплатно: 3 сообщения в день
+Бесплатно: 10 сообщений в день
 
 **С подпиской:**
 • Неограниченные сообщения
@@ -49,7 +49,7 @@ Choisis une action ci-dessous ou écris-moi simplement un message 💙
         "en": """
 📊 **Subscription Plans**
 
-Free: 3 messages per day
+Free: 10 messages per day
 
 **With subscription:**
 • Unlimited messages
@@ -61,7 +61,7 @@ Choose a plan:
         "fr": """
 📊 **Formules d'abonnement**
 
-Gratuit: 3 messages par jour
+Gratuit: 10 messages par jour
 
 **Avec abonnement:**
 • Messages illimités

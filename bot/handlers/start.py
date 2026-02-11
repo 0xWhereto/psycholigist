@@ -309,9 +309,9 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             else:
                 no_sub_texts = {
-                    "ru": "📊 У вас нет активной подписки.\n\n🆓 Бесплатно: 3 сообщения в день.\nДля безлимита — оформите подписку!",
-                    "en": "📊 You don't have an active subscription.\n\n🆓 Free: 3 messages per day.\nFor unlimited — get a subscription!",
-                    "fr": "📊 Vous n'avez pas d'abonnement actif.\n\n🆓 Gratuit: 3 messages par jour.\nPour l'illimité — abonnez-vous!",
+                    "ru": "📊 У вас нет активной подписки.\n\n🆓 Бесплатно: 10 сообщений в день.\nДля безлимита — оформите подписку!",
+                    "en": "📊 You don't have an active subscription.\n\n🆓 Free: 10 messages per day.\nFor unlimited — get a subscription!",
+                    "fr": "📊 Vous n'avez pas d'abonnement actif.\n\n🆓 Gratuit: 10 messages par jour.\nPour l'illimité — abonnez-vous!",
                 }
                 
                 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
